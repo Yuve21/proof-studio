@@ -16,6 +16,7 @@
  * hidden by that: the full membership list is one call away and every response
  * says so.
  */
+import { SEAT_CARDS } from "../licence/seat-cards.mjs";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import * as accessibility from "../corpus/accessibility.mjs";
@@ -105,11 +106,34 @@ export function getBrief(agents, id) {
     };
   }
   const backed = Boolean(AGENTS_WITH_CORPUS[agent.id]);
+  /*
+   * The seat card, when one exists. It is spread in rather than required,
+   * because tier 2 has no cards yet and a brief that 500s for a seat we have
+   * not finished documenting would be a worse answer than a shorter brief.
+   *
+   * The three fields that matter most to a CALLER are surfaced at the top
+   * level: what stops this agent, what a human still owns, and what it reads
+   * from another agent. A caller that cannot see the stopping condition has to
+   * infer it, and the inference is always "keep going".
+   */
+  const card = SEAT_CARDS[agent.id];
   return {
     id: agent.id,
     kind: agent.kind === "D" ? "deterministic" : "advisory",
     covers: agent.blurb,
     state: backed ? "ready" : "brief-only",
+    ...(card
+      ? {
+          atAGlance: card.atAGlance,
+          interrupts: card.interrupts,
+          theHuman: card.theHuman,
+          buildsOn: card.buildsOn,
+          reuses: card.reuses,
+          autonomy: card.ladder,
+          needs: card.needs,
+          buildNotes: card.buildNotes,
+        }
+      : {}),
     howToRun: backed
       ? `run_check with { agent: "${agent.id}", file: "<path to a built .html file>" }`
       : "This department has no rulebook yet, so there is nothing to run. It can still advise.",
