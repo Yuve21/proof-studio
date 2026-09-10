@@ -186,14 +186,15 @@ seo-technical, seo-onpage, seo-structured-data, accessibility, performance-engin
 mobile-experience, broken-things, forms-and-capture, domain-and-certificates, claims-officer,
 release-verifier.
 
-**FOUR OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `seo-onpage` with 10 rules,
-`accessibility` with 13, `forms-and-capture` with 6, and `claims-officer` with 8. The other nine are registered as prompts
+**FIVE OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `seo-onpage` with 10 rules,
+`accessibility` with 13, `seo-structured-data` with 9, `claims-officer` with 8, and `forms-and-capture`
+with 6. The other seven are registered as prompts
 and reported to the customer as **brief-only**, which the MCP server states in `list_agents`, in
 `get_brief` and in the prompt body: it can advise, and it cannot produce a citation. That is the
 honest state and it is published rather than implied, because a department that appears in a list and
 cannot do the thing the list implies is the defect this product exists to detect.
 
-Two of the nine are blocked rather than merely unbuilt, and the reason matters:
+Three of the seven are blocked rather than merely unbuilt, and the reason matters:
 `domain-and-certificates` needs a network request, which the installed software must never make, so
 it can only ever run on OUR side; and `performance-engineer` and `mobile-experience` need rendering
 and computed styles, which a parser does not have.

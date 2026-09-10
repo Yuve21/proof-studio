@@ -263,10 +263,27 @@ const walk = (dir, out = []) => {
  * into naming a file that has changed purpose, and neither can be claimed by a
  * marketing page.
  *
- * THE CEILING BELOW IS NOT DECORATION. An exclusion that can grow without limit
- * is an exclusion that will, so the count is checked against the number of files
- * that could legitimately qualify. A jump means somebody has started declaring
- * CORPUS_ID to get past this guard, and that is worth failing over.
+ * THE LIMIT BELOW IS NOT DECORATION, and it was WRONG in a way worth recording.
+ *
+ * It used to be a hardcoded 12 sitting under a comment claiming the count was
+ * "checked against the number of files that could legitimately qualify". It was
+ * not checked against anything. It was a constant, and the comment above it
+ * described a check that did not exist, which is this house's most-named defect
+ * arriving in the guard whose whole job is to catch published statements that are
+ * not true. It was also about to fail the build for an entirely benign reason:
+ * every new rulebook adds two legitimate exclusions, and the count reached 11.
+ *
+ * Replaced by the two checks the constant was standing in for.
+ *
+ *  1. A PROPORTIONAL ceiling. Exclusions must stay a minority of the tree. This
+ *     grows correctly as rulebooks are added and still fails if the exclusion
+ *     ever starts swallowing the codebase.
+ *  2. The check that actually catches the abuse the constant was aimed at. The
+ *     worry was never the count, it was a MARKETING file declaring CORPUS_ID to
+ *     get past this guard. So no file under a customer-facing directory may be
+ *     excluded unless it is a test fixture. That fires on one file, which is
+ *     exactly how the abuse would arrive, and no ceiling of any size would have
+ *     caught it.
  */
 const isAboutClaimsRatherThanMakingThem = (file, source) =>
   /^\s*export const CORPUS_ID\s*=/m.test(source) || /\.test\.mjs$/.test(file);
@@ -281,13 +298,29 @@ const files = allFiles.filter((f) => {
   return true;
 });
 
-const MAX_EXCLUDED = 12;
+/** Directories a customer reads. A file here is marketing until proven otherwise. */
+const CUSTOMER_FACING = ["app", "components"];
+
+const MAX_EXCLUDED = Math.floor(allFiles.length / 2);
 if (excluded.length > MAX_EXCLUDED) {
   console.error(
-    `FAIL: ${excluded.length} files were excluded as rulebooks or fixtures, over the ceiling of ` +
-    `${MAX_EXCLUDED}: ${excluded.join(", ")}.\n` +
-    `      Either the corpus genuinely grew and this ceiling should be raised deliberately, or ` +
-    `something has started declaring CORPUS_ID to get past this guard. Both need a human.`,
+    `FAIL: ${excluded.length} of ${allFiles.length} files were excluded as rulebooks or fixtures, ` +
+    `over the proportional ceiling of ${MAX_EXCLUDED} (half the tree): ${excluded.join(", ")}.\n` +
+    `      The exclusion is meant to be a minority of the codebase. At this share the guard is ` +
+    `checking less than it skips, which is not a passing guard.`,
+  );
+  process.exit(1);
+}
+
+const smuggled = excluded.filter(
+  (f) => CUSTOMER_FACING.some((d) => f.split(/[\\/]/)[0] === d) && !/\.test\.mjs$/.test(f),
+);
+if (smuggled.length) {
+  console.error(
+    `FAIL: ${smuggled.length} customer-facing file(s) were excluded from the claims guard by ` +
+    `declaring CORPUS_ID: ${smuggled.join(", ")}.\n` +
+    `      A rulebook does not live under ${CUSTOMER_FACING.join(" or ")}. Either the file is in ` +
+    `the wrong place or the exclusion is being used to publish a claim past this guard.`,
   );
   process.exit(1);
 }
@@ -334,7 +367,11 @@ for (const file of files) {
 console.log(
   `scanned ${files.length} of ${allFiles.length} file(s) across ${SCAN_DIRS.join(", ")} against ` +
   `${BANNED.length} banned pattern(s); ${REQUIRED_FILES.length} required file(s) all present; ` +
-  `${excluded.length} excluded as rulebooks or fixtures (ceiling ${MAX_EXCLUDED})`,
+  `${excluded.length} excluded as rulebooks or fixtures (ceiling ${MAX_EXCLUDED}, half the tree), ` +
+  // Computed, not written. It is only ever 0 here because the check above exits
+  // first, and a literal that is true by control flow is a literal that stops
+  // being true when the control flow moves. See LEARNINGS P-19.
+  `${smuggled.length} of them customer-facing`,
 );
 
 if (hits.length) {

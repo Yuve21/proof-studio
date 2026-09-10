@@ -530,3 +530,37 @@ first attempt, in four different ways.
   **Capture both streams, always.** A tool that writes findings to stderr and a harness that reads
   stdout will agree that everything is fine, forever.
 
+
+### P-19 · 2026-09-10 · A constant sitting under a comment describing a check that did not exist
+- **Claim:** `scripts/check-claims.mjs` carried `const MAX_EXCLUDED = 12` under a comment saying the
+  count was "checked against the number of files that could legitimately qualify". Nothing was
+  checked against anything. It was a hardcoded number, and the paragraph above it published a
+  property the code did not have, inside the guard whose entire job is catching published statements
+  that are not true.
+- **How it surfaced:** not by failing. By nearly failing for a benign reason. Each new rulebook adds
+  two legitimate exclusions (the corpus and its test), the count reached 11 of a ceiling of 12, and
+  the next rulebook would have failed the build over growth the ceiling was never aimed at.
+- **What the constant was standing in for, now built as two checks:**
+  1. A PROPORTIONAL ceiling. Exclusions must stay under half the tree, which grows correctly and
+     still fails if the exclusion starts swallowing the codebase.
+  2. The check that actually catches the abuse. The worry was never the count, it was a MARKETING
+     file declaring `CORPUS_ID` to slip a claim past the guard. No file under `app/` or
+     `components/` may be excluded unless it is a test fixture. That fires on ONE file, which is
+     how the abuse would arrive, and no ceiling of any size would have caught it.
+- **The same defect, found in the plan, in the paragraph that matters most.**
+  `docs/AGENT-ROSTER-PLAN.md` publishes how many departments have a rulebook. It went stale twice in
+  two days. When the fourth landed the count became FOUR and the next clause, "the other nine are
+  registered as prompts", was left alone: twelve minus four is eight. The paragraph below said "two
+  of the nine are blocked" while listing three seats. Neither was caught, because a number in prose
+  is checked by nothing.
+- **Confidence:** high. Both prose errors are in the git history, and both are now reproduced as
+  mutations M2 and M4 of `scripts/check-plan-claims.mjs`, which derives every number from
+  `CORPORA` and compares in both directions: a rulebook missing from the plan fails, and a rulebook
+  the plan claims and the code lacks fails.
+- **Status:** FIXED. `plan:check` is in `npm run verify`. Eight stale-number mutations, each killed
+  by its named complaint.
+- **Next time:** two habits.
+  **A ceiling on a growing quantity is a deferred build failure.** Either derive it from the thing
+  that grows, or check the property you actually care about, which is usually not a count.
+  **A number in prose that a customer would act on belongs in a gate.** Not the prose around it,
+  which still needs a reader, but the arithmetic and the names, which do not.
