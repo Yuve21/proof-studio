@@ -44,7 +44,7 @@
  *     agent is not registered rather than being registered and refused. There is
  *     no per-call check to forget. See licence/roster.mjs.
  *
- * TOKEN FORMAT: `proof1.<base64url payload>.<base64url signature>`
+ * TOKEN FORMAT: `proof1.<key id>.<base64url payload>.<base64url signature>`
  * The prefix is a version, not decoration: it means a future format can be
  * rejected loudly instead of being misread as a corrupt current one.
  */
@@ -54,18 +54,43 @@ import { verify as cryptoVerify, createPublicKey } from "node:crypto";
 const TOKEN_PREFIX = "proof1";
 
 /**
- * The issuing public key, in SPKI PEM. The matching private key never leaves the
- * billing system and is not in this repository.
+ * The issuing public keys, by key id. The matching PRIVATE keys never leave the
+ * billing system and are not in this repository.
  *
- * PLACEHOLDER, and it fails closed: until a real key is generated and pasted
- * here, `entitlement()` returns invalid with a reason that names this line, so
- * an unconfigured build cannot accidentally entitle anybody. Generate with:
- *   node -e "const {generateKeyPairSync}=require('node:crypto');
- *            const {publicKey,privateKey}=generateKeyPairSync('ed25519');
- *            console.log(publicKey.export({type:'spki',format:'pem'}));
- *            console.log(privateKey.export({type:'pkcs8',format:'pem'}))"
+ * WHY THIS IS A MAP AND NOT ONE KEY, since it was one key an hour ago.
+ *
+ * There is exactly ONE issuer, not one per customer. A private key is the thing
+ * that GRANTS entitlement, so a customer holding one could sign themselves any
+ * agent list and any expiry, which is the opposite of a licence. What is
+ * per-customer is the TOKEN: their own customer id, agents and expiry, signed by
+ * us. If one token leaks, only that token is affected.
+ *
+ * What a single key could NOT do is rotate. If it leaked, every token ever issued
+ * would have to be re-cut and every install re-configured, and there would be no
+ * way to keep old tokens working while new ones used a fresh key. So every token
+ * names the key that signed it, this map holds every key still trusted, and
+ * retiring one is a deletion from this object.
+ *
+ * RETIRING A KEY IS IMMEDIATE AND TOTAL, which is the one place offline
+ * verification is stronger than a licence server: a build that does not carry the
+ * key cannot be talked into trusting it.
+ *
+ * PLACEHOLDER, and it fails closed: with no real key here `entitlement()` returns
+ * invalid with a reason naming this line, so an unconfigured build cannot
+ * accidentally entitle anybody. Generate a keypair with:
+ *
+ *   node -e "const{generateKeyPairSync}=require('node:crypto');const k=generateKeyPairSync('ed25519');console.log(k.publicKey.export({type:'spki',format:'pem'}));console.log(k.privateKey.export({type:'pkcs8',format:'pem'}))"
+ *
+ * The public half goes here under a new id. The private half goes to the billing
+ * system's secret store and nowhere else, never into this repository.
  */
-export const ISSUER_PUBLIC_KEY_PEM = "PLACEHOLDER_NOT_A_KEY";
+export const ISSUER_PUBLIC_KEYS = {
+  // Shape: { "k1": <the SPKI PEM string, newlines and all>, "k2": ... }
+  // Described rather than shown with an escaped example on purpose: writing an
+  // escaped newline into this file through a generator broke the literal three
+  // times in one session (docs/LEARNINGS.md P-04). Paste the PEM as a real
+  // template literal and the problem does not exist.
+};
 
 const b64urlToBuffer = (s) => {
   // A strict alphabet check first: Buffer.from is lenient and will silently
@@ -76,7 +101,7 @@ const b64urlToBuffer = (s) => {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 };
 
-const invalid = (reason) => ({ valid: false, reason, agents: [], customer: null, expires: null });
+const invalid = (reason) => ({ valid: false, reason, agents: [], customer: null, expires: null, keyId: null });
 
 /**
  * Verify a licence token and return what it entitles.
@@ -89,11 +114,11 @@ const invalid = (reason) => ({ valid: false, reason, agents: [], customer: null,
  */
 export function entitlement(token, opts = {}) {
   const now = opts.now ?? new Date();
-  const pem = opts.publicKeyPem ?? ISSUER_PUBLIC_KEY_PEM;
+  const keys = opts.publicKeys ?? ISSUER_PUBLIC_KEYS;
 
-  if (pem === "PLACEHOLDER_NOT_A_KEY") {
+  if (Object.keys(keys).length === 0) {
     return invalid(
-      "this build has no issuer public key compiled in (licence/verify.mjs, ISSUER_PUBLIC_KEY_PEM). " +
+      "this build has no issuer public key compiled in (licence/verify.mjs, ISSUER_PUBLIC_KEYS). " +
       "Failing closed rather than entitling anybody.",
     );
   }
@@ -101,13 +126,27 @@ export function entitlement(token, opts = {}) {
   if (token.length > 8192) return invalid("licence token is implausibly long");
 
   const parts = token.trim().split(".");
-  if (parts.length !== 3) return invalid("licence token is not three dot-separated segments");
-  const [prefix, payloadB64, signatureB64] = parts;
+  if (parts.length !== 4) {
+    return invalid("licence token is not four dot-separated segments (prefix, key id, payload, signature)");
+  }
+  const [prefix, kid, payloadB64, signatureB64] = parts;
 
   if (prefix !== TOKEN_PREFIX) {
     return invalid(
       `licence token format "${prefix}" is not "${TOKEN_PREFIX}", which this build understands. ` +
       `Refusing rather than guessing at it.`,
+    );
+  }
+
+  // The key id selects which trusted key to use. It does NOT select an algorithm
+  // and it cannot introduce a key: an id we do not carry is a refusal, so a token
+  // signed by a retired or unknown key verifies against nothing.
+  if (!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(kid)) return invalid("licence key id is not a plausible id");
+  const pem = Object.prototype.hasOwnProperty.call(keys, kid) ? keys[kid] : null;
+  if (!pem) {
+    return invalid(
+      `licence names key id "${kid}", which this build does not trust. Either it was signed by a ` +
+      `retired key or it was not issued by us.`,
     );
   }
 
@@ -171,5 +210,6 @@ export function entitlement(token, opts = {}) {
     agents: [...agents],
     customer,
     expires: expiresAt.toISOString(),
+    keyId: kid,
   };
 }

@@ -18,10 +18,12 @@ import { registrable, TIERS, loadRoster } from "./roster.mjs";
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 const PUB = publicKey.export({ type: "spki", format: "pem" }).toString();
 const PRIV = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+const KEYS = { k1: PUB };
 
 const FUTURE = new Date(Date.now() + 30 * 864e5);
-const good = () => issue({ customer: "cus_abc123", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV });
-const check = (token, over = {}) => entitlement(token, { publicKeyPem: PUB, ...over });
+const good = () =>
+  issue({ customer: "cus_abc123", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV, keyId: "k1" });
+const check = (token, over = {}) => entitlement(token, { publicKeys: KEYS, ...over });
 
 // A fake roster, so these tests do not depend on the plan document's current
 // contents. The plan is parsed for real in the roster test below.
@@ -50,6 +52,7 @@ test("a token signed by a DIFFERENT key is refused as not ours", () => {
     agents: ["tier-1"],
     expires: FUTURE,
     privateKeyPem: other.privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+    keyId: "k1",
   });
   const r = check(forged);
   assert.equal(r.valid, false);
@@ -60,7 +63,7 @@ test("editing the payload after signing is refused, even though the JSON stays v
   const token = good();
   assert.equal(check(token).valid, true, "presence: the unedited token is accepted");
 
-  const [prefix, payloadB64, sig] = token.split(".");
+  const [prefix, kid, payloadB64, sig] = token.split(".");
   const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
   // The interesting tamper: not corruption, a PROMOTION. Same shape, more agents.
   payload.agents = ["tier-1", "seo-competitive", "margin-analyst"];
@@ -70,18 +73,18 @@ test("editing the payload after signing is refused, even though the JSON stays v
   assert.notEqual(edited, payloadB64);
   assert.equal(JSON.parse(Buffer.from(edited, "base64url").toString("utf8")).agents.length, 3);
 
-  const r = check(`${prefix}.${edited}.${sig}`);
+  const r = check(`${prefix}.${kid}.${edited}.${sig}`);
   assert.equal(r.valid, false);
   assert.match(r.reason, /signature does not match/);
 });
 
 test("extending the expiry by editing the token is refused", () => {
   const token = good();
-  const [prefix, payloadB64, sig] = token.split(".");
+  const [prefix, kid, payloadB64, sig] = token.split(".");
   const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
   payload.expires = new Date(Date.now() + 3650 * 864e5).toISOString();
   const edited = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
-  const r = check(`${prefix}.${edited}.${sig}`);
+  const r = check(`${prefix}.${kid}.${edited}.${sig}`);
   assert.equal(r.valid, false);
   assert.match(r.reason, /signature does not match/);
 });
@@ -104,10 +107,76 @@ test("a forged AND expired token reports the forgery, not the expiry", () => {
     agents: ["tier-1"],
     expires: new Date(Date.now() + 60_000),
     privateKeyPem: other.privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+    keyId: "k1",
   });
   const r = check(forged, { now: new Date(Date.now() + 864e5) });
   assert.equal(r.valid, false);
   assert.match(r.reason, /not issued by us/, "signature is checked before expiry, deliberately");
+});
+
+test("retiring a key immediately refuses every token it signed", () => {
+  /*
+   * THE TEST THAT PROVES ROTATION IS A CAPABILITY AND NOT A FIELD.
+   *
+   * A key id in the payload is worth nothing on its own: the question is whether
+   * removing a key from the trusted map actually stops the tokens it signed. So
+   * this asserts the SAME token in both directions, changing only the map.
+   *
+   * This is also the one place offline verification beats a licence server. There
+   * is no revocation list to fetch and no endpoint to be unreachable: a build that
+   * does not carry the key cannot be talked into trusting it.
+   */
+  const token = good();
+  // Presence first: with k1 trusted, this exact token works.
+  assert.equal(entitlement(token, { publicKeys: { k1: PUB } }).valid, true);
+
+  // Same token, k1 retired, a different key trusted instead.
+  const k2 = generateKeyPairSync("ed25519");
+  const rotated = { k2: k2.publicKey.export({ type: "spki", format: "pem" }).toString() };
+  const r = entitlement(token, { publicKeys: rotated });
+  assert.equal(r.valid, false);
+  assert.match(r.reason, /does not trust/);
+  assert.deepEqual(r.agents, [], "a retired key must entitle nothing");
+});
+
+test("two keys can be trusted at once, so rotation does not break existing tokens", () => {
+  // The reason rotation is usable at all: during a changeover both keys are
+  // trusted, old tokens keep working, and new ones are cut with the new key.
+  const k2 = generateKeyPairSync("ed25519");
+  const K2PUB = k2.publicKey.export({ type: "spki", format: "pem" }).toString();
+  const K2PRIV = k2.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+
+  const both = { k1: PUB, k2: K2PUB };
+  const oldToken = good();
+  const newToken = issue({
+    customer: "cus_new", agents: ["tier-1"], expires: FUTURE, privateKeyPem: K2PRIV, keyId: "k2",
+  });
+
+  const a = entitlement(oldToken, { publicKeys: both });
+  const b = entitlement(newToken, { publicKeys: both });
+  assert.equal(a.valid, true, a.reason);
+  assert.equal(b.valid, true, b.reason);
+  assert.equal(a.keyId, "k1");
+  assert.equal(b.keyId, "k2");
+  // And crossing them fails, which proves the id selects the key rather than
+  // the verifier trying every key it has until one works.
+  assert.equal(entitlement(oldToken, { publicKeys: { k2: K2PUB } }).valid, false);
+  assert.equal(entitlement(newToken, { publicKeys: { k1: PUB } }).valid, false);
+});
+
+test("a token whose key id names a key signed by someone else is refused", () => {
+  // The attack this closes: take a key id we DO trust and sign with your own key.
+  const other = generateKeyPairSync("ed25519");
+  const forged = issue({
+    customer: "cus_abc123",
+    agents: ["tier-1"],
+    expires: FUTURE,
+    privateKeyPem: other.privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+    keyId: "k1",
+  });
+  const r = entitlement(forged, { publicKeys: { k1: PUB } });
+  assert.equal(r.valid, false);
+  assert.match(r.reason, /not issued by us/);
 });
 
 test("a build with no issuer key compiled in entitles nobody", () => {
@@ -143,7 +212,7 @@ test("a corrupt issuer key entitles NOBODY, rather than everybody", () => {
   // Presence first: with the real key this exact token is accepted.
   assert.equal(check(token).valid, true);
 
-  const r = entitlement(token, { publicKeyPem: CORRUPT });
+  const r = entitlement(token, { publicKeys: { k1: CORRUPT } });
   assert.equal(r.valid, false, "a corrupt issuer key must refuse, never entitle");
   assert.deepEqual(r.agents, []);
   assert.match(r.reason, /could not be checked/);
@@ -152,11 +221,12 @@ test("a corrupt issuer key entitles NOBODY, rather than everybody", () => {
 test("malformed tokens are each refused with their own reason", () => {
   const cases = [
     ["", /no licence token/],
-    ["nonsense", /three dot-separated/],
-    ["a.b", /three dot-separated/],
-    ["proof2.aaaa.bbbb", /is not "proof1"/],
-    ["proof1.!!!!.bbbb", /not valid base64url/],
-    ["proof1.eyJhIjoxfQ.short", /64-byte Ed25519/],
+    ["nonsense", /four dot-separated/],
+    ["a.b.c", /four dot-separated/],
+    ["proof2.k1.aaaa.bbbb", /is not "proof1"/],
+    ["proof1.k1.!!!!.bbbb", /not valid base64url/],
+    ["proof1.k1.eyJhIjoxfQ.short", /64-byte Ed25519/],
+    ["proof1.NOPE!.aaaa.bbbb", /key id is not a plausible id/],
   ];
   for (const [token, re] of cases) {
     const r = check(token);
@@ -171,7 +241,7 @@ test("malformed tokens are each refused with their own reason", () => {
 test("a signed payload missing required fields is refused after the signature passes", () => {
   // This is the case that proves signature and CONTENT are separate checks. The
   // token is genuinely ours; the payload is useless.
-  const token = issue({ customer: "c", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV });
+  const token = issue({ customer: "c", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV, keyId: "k1" });
   assert.equal(check(token).valid, true);
 
   // Build a legitimately-signed token whose payload has no agents, by signing
@@ -179,7 +249,7 @@ test("a signed payload missing required fields is refused after the signature pa
   const payload = Buffer.from(JSON.stringify({ v: 1, customer: "c", agents: [], expires: FUTURE.toISOString() }));
   const sig = sign(null, payload, privateKey);
   const b = (x) => x.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const r = check(`proof1.${b(payload)}.${b(sig)}`);
+  const r = check(`proof1.k1.${b(payload)}.${b(sig)}`);
   assert.equal(r.valid, false);
   assert.match(r.reason, /entitles no agents/);
 });
@@ -201,7 +271,7 @@ test("a payload re-encoded with different whitespace is refused, same signature"
    * here tells the two implementations apart.
    */
   const token = good();
-  const [prefix, payloadB64, sig] = token.split(".");
+  const [prefix, kid, payloadB64, sig] = token.split(".");
   const parsed = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
 
   // Same object, two spaces of indentation. Semantically identical, different bytes.
@@ -213,24 +283,24 @@ test("a payload re-encoded with different whitespace is refused, same signature"
     "and it must still parse to the same object, or it is testing corruption instead",
   );
 
-  const r = check(`${prefix}.${pretty}.${sig}`);
+  const r = check(`${prefix}.${kid}.${pretty}.${sig}`);
   assert.equal(r.valid, false, "a re-encoded payload must be refused: the signature covers bytes, not meaning");
   assert.match(r.reason, /signature does not match/);
 });
 
 test("issuing refuses an expired date and an email as the customer id", () => {
   assert.throws(
-    () => issue({ customer: "c", agents: ["tier-1"], expires: new Date(Date.now() - 1000), privateKeyPem: PRIV }),
+    () => issue({ customer: "c", agents: ["tier-1"], expires: new Date(Date.now() - 1000), privateKeyPem: PRIV, keyId: "k1" }),
     /expires is in the past/,
   );
   assert.throws(
-    () => issue({ customer: "someone@example.com", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV }),
+    () => issue({ customer: "someone@example.com", agents: ["tier-1"], expires: FUTURE, privateKeyPem: PRIV, keyId: "k1" }),
     /not an email address/,
   );
 });
 
 test("registrable expands a tier and returns only agents the roster defines", () => {
-  const { agents, licence, unknown } = registrable(good(), { publicKeyPem: PUB, roster: ROSTER });
+  const { agents, licence, unknown } = registrable(good(), { publicKeys: KEYS, roster: ROSTER });
   assert.equal(licence.valid, true);
   // tier-1 has 11 members; this fake roster defines 4 of them, so 4 come back and
   // the other 7 are reported as unknown rather than vanishing.
@@ -241,7 +311,7 @@ test("registrable expands a tier and returns only agents the roster defines", ()
 });
 
 test("an INVALID licence registers zero agents, which is the unbypassable part", () => {
-  const { agents } = registrable("proof1.garbage.garbage", { publicKeyPem: PUB, roster: ROSTER });
+  const { agents } = registrable("proof1.k1.garbage.garbage", { publicKeys: KEYS, roster: ROSTER });
   assert.deepEqual(agents, [], "an unentitled agent must be ABSENT, not present and refused");
 });
 

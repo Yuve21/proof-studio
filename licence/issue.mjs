@@ -29,9 +29,10 @@ const toB64url = (buf) =>
  * @param {string[]} args.agents agent ids or tier names
  * @param {Date} args.expires when it stops working
  * @param {string} args.privateKeyPem PKCS8 PEM, from the billing system's secret store
+ * @param {string} args.keyId which issuer key this is, so the verifier can rotate
  * @returns {string} the token to hand the customer
  */
-export function issue({ customer, agents, expires, privateKeyPem }) {
+export function issue({ customer, agents, expires, privateKeyPem, keyId }) {
   if (typeof customer !== "string" || !customer) throw new Error("issue: customer is required");
   if (!Array.isArray(agents) || agents.length === 0) throw new Error("issue: agents must be non-empty");
   if (!(expires instanceof Date) || Number.isNaN(expires.getTime())) {
@@ -45,6 +46,12 @@ export function issue({ customer, agents, expires, privateKeyPem }) {
   }
   if (typeof privateKeyPem !== "string" || !privateKeyPem.includes("PRIVATE KEY")) {
     throw new Error("issue: privateKeyPem does not look like a PEM private key");
+  }
+  // The key id travels in the clear and selects which public key verifies this
+  // token. It is constrained here rather than only at verification, so a typo
+  // becomes a refusal to issue instead of a token nobody can verify.
+  if (!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(keyId ?? "")) {
+    throw new Error("issue: keyId must be a short lowercase id, e.g. k1");
   }
 
   // The customer id must not be an email address. A licence token travels in
@@ -69,5 +76,5 @@ export function issue({ customer, agents, expires, privateKeyPem }) {
   }
   const signature = cryptoSign(null, payload, key);
 
-  return `${TOKEN_PREFIX}.${toB64url(payload)}.${toB64url(signature)}`;
+  return `${TOKEN_PREFIX}.${keyId}.${toB64url(payload)}.${toB64url(signature)}`;
 }

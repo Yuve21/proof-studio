@@ -60,8 +60,34 @@ package that runs inside somebody else's repository.
 So a licence is a signed token, verified locally against a public key compiled into the server:
 
 ```
-proof1.<base64url payload>.<base64url Ed25519 signature>
+proof1.<key id>.<base64url payload>.<base64url Ed25519 signature>
 ```
+
+### There is one issuer key, not one per customer, and it can be rotated
+
+A private key is the thing that GRANTS entitlement. A customer holding one could sign themselves any
+agent list and any expiry, so per-customer private keys would be the opposite of a licence. What IS
+per-customer is the token: their own customer id, agent list and expiry, signed by us. If one leaks,
+only that one is affected.
+
+What a single key could not do is rotate. Every token now names the key that signed it, the server
+carries a map of every key it still trusts, and **retiring a key is a deletion from that map.**
+
+Three properties, each pinned by a test:
+
+- **Two keys can be trusted at once**, so a changeover does not break tokens already in the field.
+  Old tokens keep verifying under the old id while new ones are cut with the new key.
+- **The key id selects the key, it does not search.** The verifier never tries every key it holds
+  until one works, so taking a trusted key id and signing with your own key is refused.
+- **Retirement is immediate and total.** The same token, verified against a map without its key, is
+  refused and entitles nothing.
+
+Confirmed by mutation: making the verifier fall back to its first key when the id is unknown turns
+the retirement test red, and ignoring the id entirely turns two tests red.
+
+**This is the one place offline verification beats a licence server.** There is no revocation list to
+fetch and no endpoint that can be unreachable. A build that does not carry a key cannot be talked
+into trusting it.
 
 `node:crypto` does Ed25519 natively, so this adds no dependency and makes no request. The server a
 customer installs performs **zero** network calls, and they can confirm that themselves by reading
@@ -96,7 +122,7 @@ the line that prevents it.
    EXIST for this token and the server registers exactly those, so an unentitled agent is absent
    rather than present and refused. There is no per-call check to forget.
 
-An unconfigured build, with no issuer key pasted in, entitles nobody and says which line to fix.
+An unconfigured build, with no key in the trusted map, entitles nobody and says which line to fix.
 
 ### The signing path cannot reach the customer
 
