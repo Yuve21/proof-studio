@@ -35,6 +35,11 @@ const SIGNING_IMPORTERS_ALLOWED = [
   // walk the shipping graph and prove it once SHIPPING_ENTRIES is filled in.
   "licence/licence.test.mjs",
   "licence/operational.test.mjs",
+  // The billing bridge. It mints a licence when Stripe confirms a payment, so it
+  // needs the signing path, and it is server-only: a Next route handler never
+  // reaches the browser bundle. When the MCP package exists and SHIPPING_ENTRIES
+  // is filled in, the graph walk below will prove that rather than asserting it.
+  "lib/billing/issueForPayment.mjs",
 ];
 
 const SIGNING_MODULE = "licence/issue.mjs";
@@ -67,7 +72,7 @@ const resolveLocal = (from, spec) => {
 };
 
 // --- 1. who imports the signing module, across the whole tree -----------------
-const SCAN_DIRS = ["app", "licence", "scripts", "components"];
+const SCAN_DIRS = ["app", "licence", "scripts", "components", "lib", "corpus", "report"];
 const SCAN_EXT = new Set([".mjs", ".js", ".ts", ".tsx"]);
 const SKIP = new Set(["node_modules", ".next", ".git"]);
 

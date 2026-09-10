@@ -25,6 +25,8 @@
  * section needs the choreography's hooks to animate: data-tone on the section,
  * data-mask inside an h2 for the heading reveal, data-wake on anything else.
  */
+import { SubscribeButtons } from "./SubscribeButtons";
+
 export default function Page() {
   return (
     <>
@@ -333,7 +335,8 @@ export default function Page() {
                     the fixes made, and the receipt.</span>
                 </div>
               </div>
-              <p className="monthly">Pick either after launch. Cancel any time.</p>
+              <p className="monthly">Pick either after launch.</p>
+              <SubscribeButtons />
             </div>
             <div className="tier" data-tier="">
               <span className="label">The draft</span>

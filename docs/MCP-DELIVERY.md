@@ -257,3 +257,95 @@ The likely split, and it is a founder decision rather than an engineering one:
 
 Not settled. Written down so it gets decided once, on purpose, rather than by whoever writes the
 first corpus.
+
+---
+
+## 5. Billing: Stripe, and why not Shopify
+
+Decided 2026-09-10 and built. **Stripe**, because of what Proof actually sells.
+
+Shopify is a storefront for SKUs: a cart, inventory, shipping, fixed prices. Proof has none of
+those, and the page's own core mechanic is that **the exact number is quoted after you have seen
+your draft**. Modelling a variable quoted engagement as a product with a fixed price contradicts the
+offer, and Shopify subscriptions need a paid app on top of the platform fee.
+
+Stripe is billing primitives, which is the shape of a services business:
+
+| What Proof sells | Stripe primitive |
+|---|---|
+| The build, quoted after the draft | Invoice with a custom amount |
+| Kept online, from $40 a month | Subscription |
+| Kept sharp, from $120 a month | Subscription |
+| The ecommerce tier, added later | Invoice or a subscription item |
+
+But the reason it is not close is the licence layer. **A licence has to be re-cut each billing
+period, and `invoice.paid` is exactly that trigger.** Cancellation becomes "no new token issued",
+which is the only revocation an offline licence can perform. Shopify has no clean equivalent, so
+that bridge would be hand-written.
+
+### What is built
+
+- `app/api/stripe/checkout` creates the session. The plan comes from a FIXED catalog keyed by plan
+  id; a price id or an amount from the request body would let anyone subscribe at a price they
+  chose, which is the oldest checkout bug there is.
+- `app/api/stripe/webhook` verifies the signature over the raw body and mints on payment.
+- `app/api/stripe/portal` is the customer portal, so "cancel any time" is true rather than printed.
+- `app/welcome` is where a paying customer collects the licence and the install line.
+- `lib/billing/catalog.mjs` holds the plans as DATA, with price ids read from the environment.
+- `lib/billing/issueForPayment.mjs` is the only thing that mints.
+
+Every route is inert without its environment variables: 503 with the reason, never half-working.
+
+### The four refusals that matter
+
+1. **It will not mint on an unpaid session.** A delayed-settlement method (Klarna, Affirm, Cash App
+   Pay, ACH debit, some bank redirects) completes checkout while the charge is still pending, so
+   `checkout.session.completed` fires immediately with `payment_status: "unpaid"`. Granting there
+   hands out a licence for money that may never arrive. Stripe resolves it minutes later with the two
+   `checkout.session.async_payment_*` events, and **a webhook that does not subscribe to those turns
+   a cleared payment into silence**: the customer paid and the only record is a refused-grant log
+   line. Inherited from a sibling product's integration where it was learned expensively.
+2. **It will not guess a plan.** An unrecognised price id mints nothing and reports our own
+   misconfiguration, naming the test-versus-live mode trap. Defaulting to the cheapest plan is wrong
+   for us and defaulting to the most generous is wrong for the customer.
+3. **It will not sign without a key.** A missing signing key throws. An unsigned or placeholder
+   token is worse than an error: it looks like a licence, verifies against nothing, and reaches the
+   customer before anybody notices.
+4. **It will not mint an EMPTY licence.** Kept online entitles no agents, so it correctly gets no
+   licence at all rather than one entitling nothing, which the verifier would refuse anyway while
+   manufacturing a support ticket for a customer whose plan is working as sold.
+
+The licence expires at the paid period end **plus a ten-day buffer**, deliberately longer than the
+seven-day grace window, so a delay between the renewal payment and the new token reaching the
+customer is not a window in which they have paid and their agents have stopped. A test asserts the
+buffer outlasts the grace window, so the two never have to be reasoned about together.
+
+Six mutations, each red: mint on an unpaid session, mint an empty licence, fall back to the first
+plan on an unknown price, return an unsigned token with no key, remove the expiry buffer, delete the
+auto-renewal disclosure.
+
+### Compliance that is code rather than copy
+
+Several states require a recurring charge to be disclosed clearly BEFORE it starts, and cancellation
+to be at least as easy as signing up. So the disclosure sits next to the button that agrees to it,
+the portal route exists so cancelling is one click from a receipt rather than an email and a wait,
+and **a test asserts both the disclosure text and the portal route are present**, because copy is
+the easiest thing in a repository to delete by accident.
+
+### The gap, stated rather than discovered
+
+A renewal mints a new token into Stripe customer metadata and **the customer is not notified**. They
+have to return to the success page or the portal to collect it. With a ten-day buffer and a
+seven-day grace window they keep working for over two weeks past the period they paid for, and then
+stop.
+
+Closing it needs an email on renewal, which needs a sending domain. The alternative, an endpoint the
+MCP fetches a fresh token from, contradicts the no-egress guarantee and is therefore not an option.
+Email is the answer and it is not built.
+
+### Not built, and named so it is not assumed
+
+The one-time build fee. It is a quoted amount agreed per client, so it wants a Stripe Invoice sent
+by hand after the draft, not a checkout button. That is deliberate: a fixed-price button for the
+build would contradict the sentence the whole business rests on.
+
