@@ -40,9 +40,18 @@ import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
 import * as claimsOfficer from "../corpus/claims-officer.mjs";
 import * as seoStructuredData from "../corpus/seo-structured-data.mjs";
 import * as seoTechnical from "../corpus/seo-technical.mjs";
+import * as brokenThings from "../corpus/broken-things.mjs";
 
 /** Corpora available to a run. Three of tier-1's twelve today. */
-export const CORPORA = [seoOnpage, accessibility, formsAndCapture, claimsOfficer, seoStructuredData, seoTechnical];
+export const CORPORA = [
+  seoOnpage,
+  accessibility,
+  formsAndCapture,
+  claimsOfficer,
+  seoStructuredData,
+  seoTechnical,
+  brokenThings,
+];
 
 /** Below this much body text we did not read a page, we read a shell. */
 const MIN_BODY_TEXT = 200;

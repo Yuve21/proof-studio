@@ -627,3 +627,49 @@ first attempt, in four different ways.
   looking for being mentioned. This is the third distinct way a harness has produced a
   confident wrong answer in two days: an edit that never landed, the wrong stream, and now the
   wrong line. All three printed something in the shape of a result.
+
+### P-22 · 2026-09-10 · A guard that could not have worked, found by a mutation that SURVIVED
+- **Claim:** `broken.development-host` opened with `if (LOCAL_ADDRESS.test(v)) return false`, under a
+  comment saying the local-address rule owns localhost so it is not reported twice. The line never
+  changed an outcome. Neither pattern in that rule can match a bare localhost: one requires a
+  staging-style label, the other requires a dot before the host. The comment published a protection
+  that was not being applied.
+- **How it surfaced:** a mutation deleting the line SURVIVED the whole suite. A surviving mutation is
+  normally read as a missing test. This one was the more interesting case: the code was dead, so no
+  test could have caught it, and the test that looked like it covered the property
+  ("one address must not produce two findings") passed identically with and without the guard.
+- **Status:** FIXED, by deleting the guard and asserting the PROPERTY it wanted where a test can see
+  it. `broken.test.mjs` now checks the two environment rules are DISJOINT over eleven addresses,
+  with a floor on how many are reported by one of them so disjointness cannot be satisfied by
+  silence. A mutation widening either pattern until they overlap turns it red, which the guard never
+  would have.
+- **Confidence:** high. Both directions run: the guard removed with the suite green, and the pattern
+  widened with the new test red.
+- **Next time:** **a surviving mutation is a question, not a verdict.** It means either the test is
+  missing or the code is dead, and those have opposite fixes. Check which before writing a test:
+  adding a test for dead code is how dead code becomes permanent.
+
+### P-23 · 2026-09-10 · `$&` in a replacement string, and red for the wrong reason
+- **Claim:** a mutation harness reported a mutation as killed by its named gate. The suite was red,
+  but not because a gate had caught anything: the mutated file no longer PARSED.
+- **The cause:** `String.prototype.replace` interprets `$&`, `$1`, `` $` `` and `$'` inside the
+  REPLACEMENT string. The mutation's new code legitimately contained `$&`, because the corpus escapes
+  bracket characters with exactly that, so the matched source was spliced into the middle of it and
+  produced a syntax error.
+- **Why it was hard to see:** red is red. A suite that fails because the module will not load prints
+  the same exit code and the same overall shape as one that fails because an assertion caught a
+  defect, and the harness's own summary line said "killed by the named gate".
+- **What exposed it:** the gate-attribution fix from P-21. Once a kill had to appear on a FAILING
+  line, this mutation reported no failing test at all, only a failing FILE, which is the signature of
+  a module that did not load.
+- **Confidence:** high (reproduced, and the corrected harness reports it killed by the right gate).
+- **Status:** FIXED. The harness passes a replacer FUNCTION, which is never interpreted, and it now
+  prints the first lines of output when no individual test failed, so "the module did not load" is
+  distinguishable from "a gate caught it" without a second run.
+- **Next time:** two habits.
+  **Never build code with a replacement string.** Use a function replacer, always. Same family as
+  P-04: a sequence surviving one layer and being eaten by the next.
+  **Distinguish a failing FILE from a failing TEST.** A suite can go red for reasons that have
+  nothing to do with the thing being measured, and a harness that cannot tell the difference will
+  credit the wrong cause. This is the fourth distinct way a harness has produced a confident wrong
+  answer here, after an edit that never landed, the wrong stream, and the wrong line.

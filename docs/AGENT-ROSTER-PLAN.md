@@ -67,7 +67,7 @@ Each is marked:
 14. **copy-reviewer** [A] voice, clarity, reading level, jargon.
 15. **conversion-auditor** [A] the path to the one action, and the friction on it.
 16. **forms-and-capture** [D] validation, error states, completion, and whether the submission actually arrives.
-17. **broken-things** [D] dead links, 404s, stale hours, expired offers, last year's prices.
+17. **broken-things** [D] the things that are already broken in the bytes that shipped: a page reading `Welcome, undefined`, an unrendered `{{ business.name }}`, a logo whose src is a path on somebody's Desktop, a checkout link pointing at `localhost:3000`, a link jumping to a section that is not on the page, an empty `mailto:`. Twelve rules, all offline, all certain rather than inferred. **The half that needs a network is NOT here and cannot be:** whether a link resolves, what status code it returns, whether an image exists at its URL. That half can only ever run on our side, and the seat is honest about owning half a job rather than claiming the whole one.
 18. **domain-and-certificates** [D] domain expiry, DNS agreement with what the site expects, and certificate notAfter. Exists because the marketing page promises "we buy it, point it, secure it and renew it", a lapsed domain is the most catastrophic thing that happens to a small business site, it is a DATE somebody can read, and no other seat owns it. It is the failure the monthly fee is implicitly insuring against.
 19. **template-tells** [D] the slop-scorer corpus itself, 104 rules. Customer-facing name: Proof Check.
 
@@ -186,15 +186,15 @@ seo-technical, seo-onpage, seo-structured-data, accessibility, performance-engin
 mobile-experience, broken-things, forms-and-capture, domain-and-certificates, claims-officer,
 release-verifier.
 
-**SIX OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `accessibility` with 13 rules,
-`seo-technical` with 11, `seo-onpage` with 10, `seo-structured-data` with 9, `claims-officer` with 8,
-and `forms-and-capture` with 6. The other six are registered as prompts
+**SEVEN OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `accessibility` with 13 rules,
+`broken-things` with 12, `seo-technical` with 11, `seo-onpage` with 10, `seo-structured-data` with 9,
+`claims-officer` with 8, and `forms-and-capture` with 6. The other five are registered as prompts
 and reported to the customer as **brief-only**, which the MCP server states in `list_agents`, in
 `get_brief` and in the prompt body: it can advise, and it cannot produce a citation. That is the
 honest state and it is published rather than implied, because a department that appears in a list and
 cannot do the thing the list implies is the defect this product exists to detect.
 
-Three of the six are blocked rather than merely unbuilt, and the reason matters:
+Three of the five are blocked rather than merely unbuilt, and the reason matters:
 `domain-and-certificates` needs a network request, which the installed software must never make, so
 it can only ever run on OUR side; and `performance-engineer` and `mobile-experience` need rendering
 and computed styles, which a parser does not have.
