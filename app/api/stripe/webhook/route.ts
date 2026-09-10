@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Stripe from "stripe";
+import type Stripe from "stripe";
+import { stripeClient, StripeConfigError } from "../../../../lib/billing/stripeClient.mjs";
 import { licenceForPaidPeriod, sessionIsPaid } from "../../../../lib/billing/issueForPayment.mjs";
 import { planForPriceId } from "../../../../lib/billing/catalog.mjs";
 
@@ -64,10 +65,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "billing is not configured on this deployment" }, { status: 503 });
   }
 
-  // 10s and 2 retries keeps the SDK's own retry loop well inside Stripe's
-  // delivery deadline, so a slow API call cannot get the request killed after the
-  // event has been consumed.
-  const stripe = new Stripe(key, { timeout: 10_000, maxNetworkRetries: 2 });
+  /*
+   * The guarded client, and the refusal here is a 503 ON PURPOSE rather than a
+   * 200. A wrong-account or wrong-mode key means events are arriving that this
+   * deployment must not act on, and 503 makes Stripe retry and surfaces the
+   * endpoint as unhealthy in its own dashboard. Returning 200 would consume every
+   * event silently while nothing was granted.
+   */
+  let stripe: Stripe;
+  try {
+    stripe = await stripeClient();
+  } catch (err) {
+    if (err instanceof StripeConfigError) {
+      reportBillingProblem("refusing to handle webhooks with this Stripe configuration", {
+        reason: (err as Error).message,
+      });
+      return NextResponse.json({ error: "billing configuration refused" }, { status: 503 });
+    }
+    throw err;
+  }
 
   const body = await request.text();
   const signature = request.headers.get("stripe-signature") ?? "";

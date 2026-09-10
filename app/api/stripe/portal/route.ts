@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Stripe from "stripe";
+import type Stripe from "stripe";
+import { stripeClient, StripeConfigError } from "../../../../lib/billing/stripeClient.mjs";
 
 /**
  * The customer portal, where somebody cancels, updates a card, or downloads an
@@ -44,7 +45,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "session_id does not look like a checkout session" }, { status: 400 });
   }
 
-  const stripe = new Stripe(key, { timeout: 10_000, maxNetworkRetries: 2 });
+  let stripe;
+  try {
+    stripe = await stripeClient();
+  } catch (err) {
+    if (err instanceof StripeConfigError) {
+      console.error("[billing] refusing to open the portal:", (err as Error).message);
+      return NextResponse.json({ error: "billing is not available right now" }, { status: 503 });
+    }
+    throw err;
+  }
 
   let session: Stripe.Checkout.Session;
   try {

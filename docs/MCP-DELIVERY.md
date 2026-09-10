@@ -349,3 +349,55 @@ The one-time build fee. It is a quoted amount agreed per client, so it wants a S
 by hand after the draft, not a checkout button. That is deliberate: a fixed-price button for the
 build would contradict the sentence the whole business rests on.
 
+### Proof bills on its own Stripe account, and what that does and does not buy
+
+Decided 2026-09-10. Proof gets a **separate Stripe account** from the founder's other business.
+
+**What it buys:** separate ledgers, separate payouts, separate dispute and refund history, separate
+webhook secrets, and clean books for each business. If one account is put under review, the other's
+checkout keeps working.
+
+**What it does NOT buy, and this is the part worth knowing before relying on it.** Two Stripe
+accounts owned by the same person or the same legal entity are LINKED in Stripe's eyes. They are
+opened under the same identity, the same tax id, and often the same bank account, and adverse action
+taken against one can reach the other. **Account separation gives operational and bookkeeping
+isolation. Only a separate legal entity gives risk isolation.** So if the goal is that a problem in
+one business genuinely cannot touch the other, the Stripe account is the second step and forming a
+separate entity for Proof is the first. That is a founder decision with a filing fee attached, not a
+code change, and it is written here so it gets made deliberately rather than assumed.
+
+Not legal advice. It is the shape of the question a lawyer would be asked.
+
+### The guard the decision required
+
+Separating the accounts removes one risk and introduces another. With two accounts reachable from one
+dashboard and one password manager, the realistic failure is no longer contagion, it is a
+**copy-paste**. And a wrong-account key does not fail loudly: checkout succeeds, the customer is
+charged, the money arrives, and it arrives in the wrong ledger. Nothing surfaces it.
+
+So `lib/billing/stripeClient.mjs` runs two checks before any billing route does anything, and every
+billing route goes through it:
+
+1. **Mode against environment**, free, no API call. A live key in a preview deployment means a test
+   click charges a real card. A **test key in production** is the quieter and therefore worse
+   direction: every real payment succeeds in the test ledger, licences are minted, the site looks
+   like it works, and nothing is collected until somebody reconciles a bank statement.
+2. **Account identity**, one API call per cold start, cached. If `STRIPE_ACCOUNT_ID` is set and the
+   key resolves to a different account, every billing route refuses with a 503. An unset expectation
+   disables the check and logs a warning, because refusing there would mean nobody could take a first
+   payment; an account Stripe declines to name fails CLOSED.
+
+Both refusals read as 503, never as a customer-facing error, because they are our misconfiguration.
+On the webhook a 503 is deliberate: it makes Stripe retry and shows the endpoint as unhealthy in its
+own dashboard, where a 200 would consume every event silently while granting nothing.
+
+Five mutations, all red: allow a test key in production, allow a live key in preview, accept a
+publishable key as a secret key, skip the account comparison, and fail open when Stripe does not name
+the account.
+
+**One of those five survived first.** The account comparison lived inline behind the
+`accounts.retrieve()` call, so no test could reach it and disabling it left the whole suite green.
+That is the P-03 defect again, a guard behind a network call being a guard nothing exercises. The fix
+was to extract the DECISION from the I/O into `accountMismatch()`, which is now pinned by two tests.
+What remains untested is the API call itself, which is Stripe's code rather than ours.
+

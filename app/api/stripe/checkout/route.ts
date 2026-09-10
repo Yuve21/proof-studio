@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Stripe from "stripe";
+import { stripeClient, StripeConfigError } from "../../../../lib/billing/stripeClient.mjs";
 import { PLANS, priceIdFor } from "../../../../lib/billing/catalog.mjs";
 
 /**
@@ -51,7 +51,21 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = request.headers.get("origin") || new URL(request.url).origin;
-  const stripe = new Stripe(key, { timeout: 10_000, maxNetworkRetries: 2 });
+
+  // The guarded client. It refuses a key whose MODE does not match this
+  // deployment, and a key belonging to a different Stripe account than the one
+  // this deployment expects. Both refusals are configuration problems on our
+  // side, so they read as 503 rather than blaming the customer.
+  let stripe;
+  try {
+    stripe = await stripeClient();
+  } catch (err) {
+    if (err instanceof StripeConfigError) {
+      console.error("[billing] refusing to start checkout:", (err as Error).message);
+      return NextResponse.json({ error: "Checkout is not available right now." }, { status: 503 });
+    }
+    throw err;
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",

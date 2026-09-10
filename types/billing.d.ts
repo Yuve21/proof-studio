@@ -37,3 +37,22 @@ interface Plan {
   priceEnv: string;
   monthlyFrom: number;
 }
+
+declare module "*/lib/billing/stripeClient.mjs" {
+  import type Stripe from "stripe";
+  export class StripeConfigError extends Error {}
+  /** Reason string when key mode and deployment disagree, null when fine. */
+  export function modeMismatch(
+    key: string | undefined,
+    env: string | null,
+  ): string | null;
+  /** A Stripe client, or throws StripeConfigError with a reason a human can act on. */
+  /** Reason string when the key's account differs from the expected one, null when fine. */
+  export function accountMismatch(
+    actualId: string | undefined | null,
+    expectedId: string | undefined | null,
+  ): string | null;
+  export function stripeClient(): Promise<Stripe>;
+  export function resetAccountCheckCache(): void;
+}
+
