@@ -45,6 +45,11 @@ const SIGNING_IMPORTERS_ALLOWED = [
   // reaches the browser bundle. When the MCP package exists and SHIPPING_ENTRIES
   // is filled in, the graph walk below will prove that rather than asserting it.
   "lib/billing/issueForPayment.mjs",
+  // The billing readiness probe. It signs a throwaway licence and verifies it
+  // against the compiled-in public key, because a write-only secret cannot be
+  // checked by reading it back, only by using it. Server-only: a Next route
+  // handler never reaches a browser bundle.
+  "app/api/health/billing/route.ts",
 ];
 
 const SIGNING_MODULE = "licence/issue.mjs";

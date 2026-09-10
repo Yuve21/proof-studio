@@ -8,3 +8,6 @@ scripts/_choreography.js
 scripts/_prepaint.js
 .playwright/
 tsconfig.tsbuildinfo
+
+.vercel
+.env*
