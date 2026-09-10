@@ -44,12 +44,13 @@ export const TIERS = {
   "tier-1": [
     "template-tells", "seo-technical", "seo-onpage", "seo-structured-data", "accessibility",
     "performance-engineer", "mobile-experience", "broken-things", "forms-and-capture",
-    "claims-officer", "release-verifier",
+    "domain-and-certificates", "claims-officer", "release-verifier",
   ],
   // By the first monthly renewals. Includes the governance seats, because the
   // moment a corpus starts growing it needs a steward and an adversary.
   "tier-2": [
-    "seo-local", "seo-content", "seo-performance", "seo-reporting", "web-craft", "copy-reviewer",
+    "seo-local", "seo-content", "seo-performance", "seo-reporting", "measurement",
+    "web-craft", "copy-reviewer",
     "conversion-auditor", "brand-voice-keeper", "email-deliverability", "seasonal-calendar",
     "privacy-steward", "improvement-agent", "false-positive-hunter", "corpus-steward",
   ],
@@ -76,6 +77,41 @@ export const TIERS = {
     "seo-competitive", "vacuous-check-hunter",
   ],
 };
+
+/**
+ * Seats that audit OUR corpus and OUR gates, and never appear on a customer
+ * surface.
+ *
+ * Settled on outside evidence: a carousel describing SEVEN agents with one-word
+ * names took 8,400 likes, and the improvement pass independently concluded that
+ * sixty seats is a frightening menu for a small business. The customer-facing
+ * unit is the DEPARTMENT, of which there are eight, and these four are not
+ * seats a client operates at all.
+ *
+ * They are still entitled and still run. They are the reason a client should
+ * believe any finding. They are just not on the menu.
+ *
+ * A test asserts every id here is a real seat in the plan, so this list cannot
+ * rot into naming something that no longer exists.
+ */
+export const INTERNAL_SEATS = [
+  "false-positive-hunter",
+  "vacuous-check-hunter",
+  "corpus-steward",
+  "release-verifier",
+];
+
+/**
+ * The seats a customer surface may name. Derived by subtraction rather than
+ * written out, because a second hand-maintained list is a second thing to get
+ * wrong and there would be nothing comparing them.
+ *
+ * @param {Map<string, object>} roster
+ * @returns {Array<object>}
+ */
+export function customerFacing(roster) {
+  return [...roster.values()].filter((seat) => !INTERNAL_SEATS.includes(seat.id));
+}
 
 /**
  * Parse the roster out of the plan document, so the plan is the single source of

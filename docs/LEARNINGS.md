@@ -170,3 +170,65 @@ first attempt, in four different ways.
   trusted more than one that has only been demonstrated, and the next person deciding whether to keep
   it should know it has already earned its place.
 
+### P-08 · 2026-09-09 · A guard was dead twice over, for two unrelated reasons, and each time a mutation went green
+- **Claim:** the corpus loader's hedge check, which refuses a false-positive note that waffles
+  instead of naming a condition, could not fire on any input. Twice, for two different causes, and
+  both were found by mutation rather than by reading.
+- **Evidence, first cause, ORDERING.** The length gate (80-character minimum) ran BEFORE the hedge
+  gate, and every hedge worth testing is shorter than 80 characters, so the length gate rejected all
+  of them and the hedge gate was never reached. Mutation M14 disabled it: **41 pass, 0 fail.** This
+  is exactly P-03's shape, structural validation absorbing every input a test author naturally
+  reaches for, in a second subsystem within the same session.
+- **Evidence, second cause, and it is worse.** After reordering and adding long padded hedges to the
+  suite, M14 STILL went green. The patterns had been generated through a shell heredoc, which
+  collapsed the escaped backslashes, and Python then read the two-character sequence for a word
+  boundary as a BACKSPACE control character and consumed it, while leaving the whitespace class
+  untouched because that one is not a Python escape. Measured: **32 backspace characters (0x08) in
+  `corpus/load.mjs`, zero word-boundary sequences.** The damage was SELECTIVE and invisible: the file
+  read correctly in an editor and in a diff.
+  The consequence was not a looser match, it was a dead gate in the opposite direction. With
+  boundaries gone the condition marker for "on a" matched inside "acting ON Anything", so nearly any
+  prose counted as naming a condition and the hedge half could never fire.
+- **The pattern question, which is what found the extent of it:** not "is this regex right" but
+  "which other file did I generate through a shell?" Nine globs across the repository, and the answer
+  was one file with 32 occurrences and every other file clean. Fixed by replacing every backspace
+  character with the sequence it should have been, which restored all 32 boundaries at once.
+- **Confidence:** high (both causes reproduced, the byte count measured, and M14 red afterwards).
+- **Status:** FIXED. The hedge gate runs before the length gate, so a short hedge is told it is a
+  hedge rather than told it is short. The patterns are anchored properly. And the check is two-part
+  on purpose: a note may CONTAIN a hedge as long as it also names the condition, because a guard that
+  fires on honest prose gets edited around rather than obeyed. Both halves are pinned by mutations in
+  opposite directions: M14 disables the gate (red), M19 removes the condition half so honest notes
+  are rejected too (red).
+- **Next time:** two rules, and the second is the general one.
+  First: **never generate regex source through a shell.** Edit the file directly. Some escapes
+  survive the trip and others silently change meaning, so the corruption is partial and the file
+  looks fine.
+  Second: when a check has a cheap structural precondition and an expensive semantic one, the
+  semantic one goes FIRST or it will never see an interesting input. Ask of every guard: name the
+  input that triggers it, and confirm that input is in the suite and reaches this line.
+
+### P-09 · 2026-09-09 · The first report we ran found two real defects on our own page, which is the only honest way to ship it
+- **Claim:** `seo-onpage` run against Proof's own built page reported two heading-level skips, both
+  genuine, before it was ever pointed at a client.
+- **Evidence:** `h3 "Instagram is not a website" follows h1, skipping h2` and
+  `h4 "Design and build" follows h2, skipping h3`, each with a CSS selector. Fixed in BOTH
+  `index.html` and `app/page.tsx` identically, three h3 to h2 and six h4 to h3, with the stylesheet
+  selectors moved in the same commit. DOM parity held at 443 nodes afterwards, which is the evidence
+  the two copies did not drift. Re-run: `Nothing fired. Every one of the 10 rules ran and none
+  matched.`
+- **A measurement of mine that was invalid, and worth recording because it looked fine.** I first
+  checked the computed styles against the BUILT artifact over `file://`, and every value came back as
+  a browser default. The built page links its stylesheet at an absolute `/_next/...` path which does
+  not resolve over `file://`, so I had measured an unstyled page and would have concluded the CSS was
+  broken. Re-measured against `index.html`, which carries its styles inline: 21.6px at 112% stretch
+  and 17.28px at 110% in grid column 2, exactly as intended.
+- **Confidence:** high (the findings, the fix, the parity re-check and the computed styles were all
+  run).
+- **Status:** FIXED, and the page is clean against its own rulebook.
+- **Next time:** point a new check at your own artifact first. A studio named Proof whose own page
+  fails its own rulebook is the defect it sells the detection of, and finding two real ones on the
+  first run is the strongest available evidence that the corpus is not decorative. And when a
+  computed-style measurement returns suspiciously round defaults, check that the stylesheet actually
+  loaded before believing the numbers.
+

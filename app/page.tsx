@@ -131,13 +131,13 @@ export default function Page() {
             <p className="label acc">The before</p>
             <div className="probs" style={{ marginTop: "1rem" }}>
               <div className="prob" data-prob=""><span className="n">01</span><div>
-                <h3>Instagram is not a website</h3>
+                <h2>Instagram is not a website</h2>
                 <p>A bio holds one link and no hours, no location, no menu and no prices. Every question a customer has becomes a DM you answer by hand, or a sale you quietly lose.</p></div></div>
               <div className="prob" data-prob=""><span className="n">02</span><div>
-                <h3>You do not own the audience</h3>
+                <h2>You do not own the audience</h2>
                 <p>Followers are rented. The algorithm decides who sees the post about this weekend’s market. A page you own shows up the same way to everyone who searches your name.</p></div></div>
               <div className="prob" data-prob=""><span className="n">03</span><div>
-                <h3>The story never gets told</h3>
+                <h2>The story never gets told</h2>
                 <p>The reason people should choose you is usually the part that fits nowhere: the farm, the method, the twelve years. A caption is 125 characters. That story is worth a page.</p></div></div>
             </div>
             <p className="before-foot">Vermont Maple Lemonade had 1,543 followers, thirteen seasons at Smorgasburg, and a founder’s story
@@ -227,17 +227,17 @@ export default function Page() {
           </div>
           <div className="incl" data-batch="">
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Design and build</h4><p>Written, designed, animated and built for your business specifically. Not a template with your logo dropped in.</p></div>
+              <h3>Design and build</h3><p>Written, designed, animated and built for your business specifically. Not a template with your logo dropped in.</p></div>
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Your domain, set up</h4><p>We buy it, point it, secure it and renew it. You never touch a DNS record.</p></div>
+              <h3>Your domain, set up</h3><p>We buy it, point it, secure it and renew it. You never touch a DNS record.</p></div>
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Hosting and uptime</h4><p>Fast hosting included. If it goes down at 2am it is our problem, not yours.</p></div>
+              <h3>Hosting and uptime</h3><p>Fast hosting included. If it goes down at 2am it is our problem, not yours.</p></div>
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Edits, unlimited</h4><p>New prices, new hours, a new flavor, a closed weekend. Text us and it is done that day.</p></div>
+              <h3>Edits, unlimited</h3><p>New prices, new hours, a new flavor, a closed weekend. Text us and it is done that day.</p></div>
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Works on a phone</h4><p>Most of your customers are standing in a line looking at their phone. That is the version we design first.</p></div>
+              <h3>Works on a phone</h3><p>Most of your customers are standing in a line looking at their phone. That is the version we design first.</p></div>
             <div><svg className="tick" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path className="tickpath" d="M3 9.5l4.5 4.5 8-10" /></svg>
-              <h4>Found on Google</h4><p>Titles, descriptions, structured data and a sitemap, so searching your name finds you and not a delivery app.</p></div>
+              <h3>Found on Google</h3><p>Titles, descriptions, structured data and a sitemap, so searching your name finds you and not a delivery app.</p></div>
           </div>
         </div>
       </section>

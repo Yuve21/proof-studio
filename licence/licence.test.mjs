@@ -312,11 +312,11 @@ test("issuing refuses an expired date and an email as the customer id", () => {
 test("registrable expands a tier and returns only agents the roster defines", () => {
   const { agents, licence, unknown } = registrable(good(), { publicKeys: KEYS, roster: ROSTER });
   assert.equal(licence.valid, true);
-  // tier-1 has 11 members; this fake roster defines 4 of them, so 4 come back and
-  // the other 7 are reported as unknown rather than vanishing.
-  assert.equal(TIERS["tier-1"].length, 11);
+  // tier-1 has 12 members; this fake roster defines 4 of them, so 4 come back and
+  // the other 8 are reported as unknown rather than vanishing.
+  assert.equal(TIERS["tier-1"].length, 12);
   assert.equal(agents.length, 4);
-  assert.equal(unknown.length, 7);
+  assert.equal(unknown.length, 8);
   assert.deepEqual(agents.map((a) => a.id), ["accessibility", "claims-officer", "seo-technical", "template-tells"]);
 });
 
@@ -325,9 +325,9 @@ test("an INVALID licence registers zero agents, which is the unbypassable part",
   assert.deepEqual(agents, [], "an unentitled agent must be ABSENT, not present and refused");
 });
 
-test("the real plan document parses into exactly 60 seats", () => {
+test("the real plan document parses into exactly 62 seats", () => {
   const roster = loadRoster("docs/AGENT-ROSTER-PLAN.md");
-  assert.equal(roster.size, 60);
+  assert.equal(roster.size, 62);
   // Absolute members, not just a count, so shrinking the plan and the assertion
   // together is still caught.
   for (const id of TIERS["tier-1"]) {

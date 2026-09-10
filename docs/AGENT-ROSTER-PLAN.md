@@ -46,7 +46,7 @@ Each is marked:
 - **[A] advisory**, model judgement over a written playbook. Useful, and NOT something to attach a
   measurement to.
 
-### A. Found (8), being discovered
+### A. Found (9), being discovered
 
 1. **seo-technical** [D] crawlability, indexation, robots and sitemap agreement, canonicals, status codes, redirect chains.
 2. **seo-onpage** [D] titles, meta descriptions, heading order, internal link graph, orphan pages.
@@ -56,88 +56,116 @@ Each is marked:
 6. **seo-performance** [D] Core Web Vitals as a ranking input specifically, not as craft.
 7. **seo-competitive** [A] who ranks for the client's terms and what they have that the client does not.
 8. **seo-reporting** [D] what moved and what did not, with the denominator. Exists to stop the department grading its own homework.
+9. **measurement** [D] whether the numbers exist at all: is analytics installed and firing, is the search console verified, does the consent state match what the privacy policy claims. Separate from seo-reporting because a report with no denominator is this house's named defect, and somebody has to own the denominator itself.
 
-### B. Craft (9), the site itself
+### B. Craft (10), the site itself
 
-9. **web-craft** [A] visual and motion quality, hands on in a real browser.
-10. **accessibility** [D] contrast, focus order, labels, landmarks, keyboard path.
-11. **performance-engineer** [D] LCP, INP, CLS, bundle weight, image and font strategy.
-12. **mobile-experience** [D] the phone version, because that is where the customer is standing.
-13. **copy-reviewer** [A] voice, clarity, reading level, jargon.
-14. **conversion-auditor** [A] the path to the one action, and the friction on it.
-15. **forms-and-capture** [D] validation, error states, completion, and whether the submission actually arrives.
-16. **broken-things** [D] dead links, 404s, stale hours, expired offers, last year's prices.
-17. **template-tells** [D] the slop-scorer corpus itself, 104 rules. Customer-facing name: Proof Check.
+10. **web-craft** [A] visual and motion quality, hands on in a real browser.
+11. **accessibility** [D] contrast, focus order, labels, landmarks, keyboard path.
+12. **performance-engineer** [D] LCP, INP, CLS, bundle weight, image and font strategy.
+13. **mobile-experience** [D] the phone version, because that is where the customer is standing.
+14. **copy-reviewer** [A] voice, clarity, reading level, jargon.
+15. **conversion-auditor** [A] the path to the one action, and the friction on it.
+16. **forms-and-capture** [D] validation, error states, completion, and whether the submission actually arrives.
+17. **broken-things** [D] dead links, 404s, stale hours, expired offers, last year's prices.
+18. **domain-and-certificates** [D] domain expiry, DNS agreement with what the site expects, and certificate notAfter. Exists because the marketing page promises "we buy it, point it, secure it and renew it", a lapsed domain is the most catastrophic thing that happens to a small business site, it is a DATE somebody can read, and no other seat owns it. It is the failure the monthly fee is implicitly insuring against.
+19. **template-tells** [D] the slop-scorer corpus itself, 104 rules. Customer-facing name: Proof Check.
 
 ### C. Money (7), commerce
 
-18. **checkout-auditor** [D] every step from cart to receipt, including the failure paths.
-19. **pricing-analyst** [A] price points, tiers, anchoring, what the market bears.
-20. **product-catalog** [D] titles, descriptions, images, variants, missing fields.
-21. **inventory-and-fulfilment** [A] stock, shipping, packaging, delivery promises.
-22. **payments-and-fees** [D] processor fees, failed payment recovery, currency and tax setup.
-23. **subscription-and-retention** [A] churn, dunning, win-back.
-24. **refunds-and-disputes** [D] policy clarity, chargeback exposure, the wording that prevents both.
+20. **checkout-auditor** [D] every step from cart to receipt, including the failure paths.
+21. **pricing-analyst** [A] price points, tiers, anchoring, what the market bears.
+22. **product-catalog** [D] titles, descriptions, images, variants, missing fields.
+23. **inventory-and-fulfilment** [A] stock, shipping, packaging, delivery promises.
+24. **payments-and-fees** [D] processor fees, failed payment recovery, currency and tax setup.
+25. **subscription-and-retention** [A] churn, dunning, win-back.
+26. **refunds-and-disputes** [D] policy clarity, chargeback exposure, the wording that prevents both.
 
 ### D. Reach (14), marketing
 
-25. **content-strategist** [A] what to make, in what order, for whom.
-26. **content-writer** [A] the draft itself.
-27. **social-media-manager** [A] platform strategy and calendar.
-28. **social-publisher** [D] the mechanical act: format, aspect ratio, caption limits, link handling, scheduling. Separate from the manager because a strategy failure and a publish failure need different fixes.
-29. **email-lifecycle** [A] welcome, nurture, win-back, seasonal.
-30. **email-deliverability** [D] SPF, DKIM, DMARC alignment, warmup, list hygiene, spam-trigger scan. Separate and deterministic because deliverability is a set of records that either align or do not.
-31. **paid-ads-auditor** [A] spend, targeting, creative, landing page match.
-32. **review-and-reputation** [A] review volume and response, and the response wording.
-33. **brand-voice-keeper** [D] consistency against a written voice spec, across every surface.
-34. **photography-director** [A] the shot list and the brief, because a small business's biggest visual win is usually better photos of what it already has.
-35. **video-and-reels** [A] short-form format and hook structure.
-36. **newsletter** [A] the recurring send, which is a different discipline from lifecycle email.
-37. **partnerships-and-local** [A] neighbouring businesses, markets, events.
-38. **seasonal-calendar** [D] the dated obligations a business forgets: seasons, holidays, market schedules, renewal dates.
+27. **content-strategist** [A] what to make, in what order, for whom.
+28. **content-writer** [A] the draft itself.
+29. **social-media-manager** [A] platform strategy and calendar.
+30. **social-publisher** [D] the mechanical act: format, aspect ratio, caption limits, link handling, scheduling. Separate from the manager because a strategy failure and a publish failure need different fixes.
+31. **email-lifecycle** [A] welcome, nurture, win-back, seasonal.
+32. **email-deliverability** [D] SPF, DKIM, DMARC alignment, warmup, list hygiene, spam-trigger scan. Separate and deterministic because deliverability is a set of records that either align or do not.
+33. **paid-ads-auditor** [A] spend, targeting, creative, landing page match.
+34. **review-and-reputation** [A] review volume and response, and the response wording.
+35. **brand-voice-keeper** [D] consistency against a written voice spec, across every surface.
+36. **photography-director** [A] the shot list and the brief, because a small business's biggest visual win is usually better photos of what it already has.
+37. **video-and-reels** [A] short-form format and hook structure.
+38. **newsletter** [A] the recurring send, which is a different discipline from lifecycle email.
+39. **partnerships-and-local** [A] neighbouring businesses, markets, events.
+40. **seasonal-calendar** [D] the dated obligations a business forgets: seasons, holidays, market schedules, renewal dates.
 
 ### E. Customers (5), service
 
-39. **support-agent** [A] answers the questions the business answers by hand fifty times a week.
-40. **inbox-triage** [A] what needs a human, what does not, what is on fire.
-41. **booking-and-reservations** [D] the booking path and its failure modes.
-42. **feedback-analyst** [A] what customers keep saying, ranked.
-43. **loyalty-and-repeat** [A] the second purchase, which is cheaper than the first.
+41. **support-agent** [A] answers the questions the business answers by hand fifty times a week.
+42. **inbox-triage** [A] what needs a human, what does not, what is on fire.
+43. **booking-and-reservations** [D] the booking path and its failure modes.
+44. **feedback-analyst** [A] what customers keep saying, ranked.
+45. **loyalty-and-repeat** [A] the second purchase, which is cheaper than the first.
 
 ### F. Business (7), the operator's side
 
-44. **bookkeeping-reviewer** [D] categorisation, reconciliation, missing receipts.
-45. **margin-analyst** [D] unit economics per product, with the arithmetic shown.
-46. **cashflow** [D] runway, timing, seasonality.
-47. **supplier-and-cost** [A] input costs and alternatives.
-48. **hiring-and-roles** [A] what to hire, when, and what to write in the posting.
-49. **compliance-calendar** [D] licences, permits, filings, renewals, with dates.
-50. **insurance-and-risk** [A] what is uninsured that should not be.
+46. **bookkeeping-reviewer** [D] categorisation, reconciliation, missing receipts.
+47. **margin-analyst** [D] unit economics per product, with the arithmetic shown.
+48. **cashflow** [D] runway, timing, seasonality.
+49. **supplier-and-cost** [A] input costs and alternatives.
+50. **hiring-and-roles** [A] what to hire, when, and what to write in the posting.
+51. **compliance-calendar** [D] licences, permits, filings, renewals, with dates.
+52. **insurance-and-risk** [A] what is uninsured that should not be.
 
 ### G. Trust (5), the legal surface
 
-51. **claims-officer** [D] every claim the business publishes about itself, against what it can substantiate. The most important seat in this department and the reason the department exists. Ports directly from slop-scorer, where it exists because *In re Workado* was lost on what was published rather than on what was built.
-52. **privacy-steward** [D] what the site collects, what the policy says, and whether those two agree.
-53. **terms-and-policies** [A] the documents, read as documents.
-54. **accessibility-legal** [D] ADA and WCAG exposure specifically, which is a different question from whether the site is usable.
-55. **contracts-reviewer** [A] the agreements the business signs and sends.
+53. **claims-officer** [D] every claim the business publishes about itself, against what it can substantiate. The most important seat in this department and the reason the department exists. Ports directly from slop-scorer, where it exists because *In re Workado* was lost on what was published rather than on what was built.
+54. **privacy-steward** [D] what the site collects, what the policy says, and whether those two agree.
+55. **terms-and-policies** [A] the documents, read as documents.
+56. **accessibility-legal** [D] ADA and WCAG exposure specifically, which is a different question from whether the site is usable.
+57. **contracts-reviewer** [A] the agreements the business signs and sends.
 
 ### H. Governance (5), the seats that keep the other 55 honest
 
 These are not overhead. They are the reason a customer should believe any of the above, and every
 one of them exists because this house has already shipped the defect it catches.
 
-56. **improvement-agent** [A] the generalist recommender. Point it at anything and it returns ranked "instead of X, do Y, because Z". Its cardinal rule is verify current state before recommending, because a recommendation to build a thing that already exists is worse than no recommendation.
-57. **false-positive-hunter** [D] tries to make every corpus fire on legitimate work. **Mandatory second reviewer on every rule promotion**, because a rule's author is the worst judge of its false-positive surface.
-58. **vacuous-check-hunter** [D] hunts guarantees that report success without doing their job: checks never called, verifications comparing a value to itself, tests certifying silence, denominators drawn from their own subject.
-59. **corpus-steward** [D] owns every rule, its weight and its published false-positive note, line by line, to a customer who disagrees with it.
-60. **release-verifier** [D] runs every gate and reports pass, fail or **skipped, with a denominator for each**. Exists because a gate that scanned zero things and printed PASS is the failure this whole product is against.
+58. **improvement-agent** [A] the generalist recommender. Point it at anything and it returns ranked "instead of X, do Y, because Z". Its cardinal rule is verify current state before recommending, because a recommendation to build a thing that already exists is worse than no recommendation.
+59. **false-positive-hunter** [D] tries to make every corpus fire on legitimate work. **Mandatory second reviewer on every rule promotion**, because a rule's author is the worst judge of its false-positive surface.
+60. **vacuous-check-hunter** [D] hunts guarantees that report success without doing their job: checks never called, verifications comparing a value to itself, tests certifying silence, denominators drawn from their own subject.
+61. **corpus-steward** [D] owns every rule, its weight and its published false-positive note, line by line, to a customer who disagrees with it.
+62. **release-verifier** [D] runs every gate and reports pass, fail or **skipped, with a denominator for each**. Exists because a gate that scanned zero things and printed PASS is the failure this whole product is against.
 
-**Count: 8 + 9 + 7 + 14 + 5 + 7 + 5 + 5 = 60. 31 deterministic, 29 advisory.**
+**Count: 9 + 10 + 7 + 14 + 5 + 7 + 5 + 5 = 62. 33 deterministic, 29 advisory.**
 (Counted mechanically off the [D] and [A] markers above, not asserted. A count that only agrees
 with the sentence that states it is not a count.)
 
 ---
+
+## What the customer sees is EIGHT, not sixty
+
+Settled 2026-09-09 on outside evidence rather than taste.
+
+A carousel titled "I built an AI content team" (`ibraviz.ai`, 2026-08-13) took **8,400 likes and 301
+shares** describing **seven** agents with one-word names, with Claude Code framed as "the office".
+Seven. The improvement pass reached the same conclusion from a different direction, that "sixty
+seats is a frightening menu for a food stand" and that the governance seats are Proof's rather than
+the client's.
+
+So the roster stays at 62 as the INTERNAL org chart, and the customer-facing unit is the
+**department**. Eight departments, each named for what it gets them, is almost exactly the shape that
+demonstrably performs, and it is the honest shape too: a client hires a capability, not a headcount.
+
+Two consequences that are not cosmetic:
+
+- **Four seats never appear on a customer surface at all.** `false-positive-hunter`,
+  `vacuous-check-hunter`, `corpus-steward` and `release-verifier` audit OUR corpus and OUR gates.
+  They are the reason a client should believe any finding, and they are not seats the client
+  operates. `licence/roster.mjs` carries them in `INTERNAL_SEATS` and a test asserts every one is a
+  real seat, so the list cannot rot into naming something that does not exist.
+- **The count is never the pitch.** "Sixty AI agents" is the crowded position and it invites the one
+  question we cannot answer well yet, which is what each of them knows. The differentiator is the
+  published rule with its false-positive note and a receipt a stranger can re-derive. Nobody else
+  selling an agent team can say that sentence, and it is true today.
 
 ## Deliberately NOT on the roster
 
@@ -153,17 +181,17 @@ Named so nobody re-proposes them without an argument:
 
 ## Shipping order, because 60 empty seats is worse than 11 full ones
 
-**Tier 1, ships with the first paying site (11 seats).** Every one deterministic, every one backed
+**Tier 1, ships with the first paying site (12 seats).** Every one deterministic, every one backed
 by a corpus that exists or is a week of work: template-tells, seo-technical, seo-onpage,
 seo-structured-data, accessibility, performance-engineer, mobile-experience, broken-things,
-forms-and-capture, claims-officer, release-verifier.
+forms-and-capture, domain-and-certificates, claims-officer, release-verifier.
 
 That tier alone is a defensible product. It is "your finished site, checked against a published
 rulebook, every finding citing a line you can go and read, and it abstains when it cannot tell".
 Nobody selling to small business says that today.
 
-**Tier 2, by the first monthly renewals (14).** seo-local, seo-content, seo-performance,
-seo-reporting, web-craft, copy-reviewer, conversion-auditor, brand-voice-keeper,
+**Tier 2, by the first monthly renewals (15).** seo-local, seo-content, seo-performance,
+seo-reporting, measurement, web-craft, copy-reviewer, conversion-auditor, brand-voice-keeper,
 email-deliverability, seasonal-calendar, privacy-steward, improvement-agent, false-positive-hunter,
 corpus-steward.
 
@@ -180,7 +208,7 @@ accessibility-legal, contracts-reviewer), plus the two strays that belong nowher
 seo-competitive and vacuous-check-hunter. Business and Trust land last because they need real
 financial and legal data, and therefore real consent and real care.
 
-Tiers sum to 11 + 14 + 7 + 16 + 12 = 60, checked against the roster above rather than against this
+Tiers sum to 12 + 15 + 7 + 16 + 12 = 62, checked against the roster above rather than against this
 sentence.
 
 ---

@@ -9,7 +9,7 @@ leaves their machine to make that work, and that is verifiable rather than promi
 
 ---
 
-## 1. Why sixty agents are not sixty tools
+## 1. Why sixty-two agents are not sixty-two tools
 
 An MCP host loads every TOOL definition into the model's context at connect time, before the
 customer has asked for anything. So the roster's shape is a fixed tax on every conversation in the
@@ -24,18 +24,20 @@ of `AGENT-ROSTER-PLAN.md` rather than using a made-up list:
 
 | Shape | Cost at connect | When it is paid |
 |---|---|---|
-| A. 60 tools, one per agent | **~8,617 tokens** | every conversation, before any request |
-| B. 60 prompt listings + fixed tools | ~3,319 tokens | every conversation |
+| A. 62 tools, one per agent | **~9,015 tokens** | every conversation, before any request |
+| B. 62 prompt listings + fixed tools | ~3,538 tokens | every conversation |
 | C. fixed tools only, agents as prompts, index on request | **~735 tokens** | every conversation |
 
-**Shape C, and it is 11.7x cheaper than the obvious one.** Estimated at 4 characters per token; the
+**Shape C, and it is 12.3x cheaper than the obvious one.** The gap WIDENS as seats are added, which
+is the property that matters: shape C's connect cost is flat at the fixed tool set, so the roster can
+grow without taxing the seat it lives in. Estimated at 4 characters per token; the
 divisor is approximate and the ratio is not.
 
 So the server exposes:
 
 - **A small fixed tool set** (7 tools: `run_agent`, `list_agents`, `get_brief`, `propose_fixes`,
   `verify_fix`, `licence_status`, `describe_corpus`). This is the whole connect-time cost.
-- **Sixty MCP prompts**, one per agent. Hosts fetch a prompt body only when somebody invokes it, and
+- **One MCP prompt per agent, 62 of them.** Hosts fetch a prompt body only when somebody invokes it, and
   they surface as slash commands, which is exactly the interaction the founder described: "run the
   improvement agent over this product".
 - **Resources** for the corpora and for the client's own accumulating learnings file.

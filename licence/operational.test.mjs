@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import { entitlement, GRACE_DAYS, WARN_DAYS } from "./verify.mjs";
 import { issue } from "./issue.mjs";
-import { registrable, TIERS, loadRoster } from "./roster.mjs";
+import { registrable, TIERS, loadRoster, INTERNAL_SEATS, customerFacing } from "./roster.mjs";
 
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 const PUB = publicKey.export({ type: "spki", format: "pem" }).toString();
@@ -163,8 +163,8 @@ test("the five tiers PARTITION the roster: every seat in exactly one, none inven
   const roster = loadRoster("docs/AGENT-ROSTER-PLAN.md");
   const tiered = Object.values(TIERS).flat();
 
-  assert.equal(roster.size, 60);
-  assert.equal(tiered.length, 60, "the tiers must account for every seat exactly once");
+  assert.equal(roster.size, 62);
+  assert.equal(tiered.length, 62, "the tiers must account for every seat exactly once");
 
   const dupes = tiered.filter((v, i) => tiered.indexOf(v) !== i);
   assert.deepEqual(dupes, [], "a seat in two tiers is entitled twice and shipped once");
@@ -178,7 +178,7 @@ test("the five tiers PARTITION the roster: every seat in exactly one, none inven
   // Absolute sizes too, so shrinking both lists together is still caught.
   assert.deepEqual(
     Object.fromEntries(Object.entries(TIERS).map(([k, v]) => [k, v.length])),
-    { "tier-1": 11, "tier-2": 14, "tier-3": 7, "tier-4": 16, "tier-5": 12 },
+    { "tier-1": 12, "tier-2": 15, "tier-3": 7, "tier-4": 16, "tier-5": 12 },
   );
 });
 
@@ -214,4 +214,21 @@ test("every tier registers its full membership, which tier-2 did not before", ()
     assert.equal(r.agents.length, TIERS[tier].length, `${tier} must register all of its seats`);
     assert.deepEqual(r.unknown, [], `${tier} must name no seat the roster lacks`);
   }
+});
+
+test("every internal seat is a real seat, and the customer-facing list is the rest", () => {
+  // The list cannot rot into naming a seat that does not exist, which is how an
+  // exemption list quietly stops exempting anything.
+  const roster = loadRoster("docs/AGENT-ROSTER-PLAN.md");
+  for (const id of INTERNAL_SEATS) {
+    assert.ok(roster.has(id), `INTERNAL_SEATS names ${id}, which the plan does not define`);
+  }
+  const facing = customerFacing(roster);
+  assert.equal(facing.length, roster.size - INTERNAL_SEATS.length);
+  for (const id of INTERNAL_SEATS) {
+    assert.ok(!facing.some((s) => s.id === id), `${id} must not reach a customer surface`);
+  }
+  // And the two seats added because the marketing page already promises them.
+  assert.ok(roster.has("domain-and-certificates"), "the page promises domain renewal; a seat must own it");
+  assert.ok(roster.has("measurement"), "somebody must own whether the numbers exist at all");
 });

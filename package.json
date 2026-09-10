@@ -6,12 +6,14 @@
     "build": "next build",
     "start": "next start -p 3210",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"licence/*.test.mjs\"",
+    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\"",
+    "report": "node report/run.mjs",
+    "selfcheck": "node report/run.mjs .next/server/app/index.html --offline",
     "licence:boundary": "node scripts/check-licence-boundary.mjs",
     "mcp:shape": "node scripts/measure-mcp-shape.mjs",
     "claims:check": "node scripts/check-claims.mjs",
     "parity:check": "node scripts/verify-dom-parity.mjs",
-    "verify": "npm run typecheck && npm run test && npm run licence:boundary && npm run mcp:shape && npm run claims:check && npm run build && npm run parity:check"
+    "verify": "npm run typecheck && npm run test && npm run licence:boundary && npm run mcp:shape && npm run claims:check && npm run build && npm run parity:check && npm run selfcheck"
   },
   "dependencies": {
     "next": "^15.5.0",

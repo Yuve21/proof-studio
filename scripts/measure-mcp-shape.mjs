@@ -11,12 +11,12 @@
  *
  * The same question decides the shape of this product, and it is sharper here
  * because an MCP host loads every TOOL definition into context at connect time,
- * before the customer has asked for anything. Sixty tools is a fixed tax on every
+ * before the customer has asked for anything. Sixty-two tools is a fixed tax on every
  * conversation in the seat we are plugged into.
  *
  * THE THREE SHAPES:
- *   A. 60 tools, one per agent. Every brief in context at connect.
- *   B. 60 prompts + a small fixed tool set. Hosts list prompt names and fetch a
+ *   A. one tool per agent. Every brief in context at connect.
+ *   B. one prompt per agent, plus a small fixed tool set. Hosts list prompt names and fetch a
  *      body only when invoked, so the connect cost is the listing.
  *   C. B, plus the compact agent index as one line per agent, which is the shape
  *      9783bbe landed on for rules.
@@ -46,9 +46,9 @@ if (seats.length === 0) {
   console.error(`FAIL: parsed ZERO seats from ${PLAN}. A measurement over nothing is not a measurement.`);
   process.exit(1);
 }
-if (seats.length !== 60) {
+if (seats.length !== 62) {
   console.error(
-    `FAIL: parsed ${seats.length} seats from ${PLAN}, expected 60. Either the plan changed and this ` +
+    `FAIL: parsed ${seats.length} seats from ${PLAN}, expected 62. Either the plan changed and this ` +
     `number should be updated deliberately, or the parser stopped matching. Both need a human.`,
   );
   process.exit(1);
@@ -93,8 +93,8 @@ const FIXED_TOOLS = 7; // run_agent, list_agents, get_brief, propose_fixes, veri
 const fixedToolCost = 7 * 420; // chars; measured against slop-scorer's five tool definitions, which average ~420
 
 const rows = [
-  ["A. 60 tools, one per agent", shapeA.length, "loaded at connect, every conversation"],
-  ["B. 60 prompt listings", shapeB.length, "loaded at connect, body fetched on invoke"],
+  [`A. ${seats.length} tools, one per agent`, shapeA.length, "loaded at connect, every conversation"],
+  [`B. ${seats.length} prompt listings`, shapeB.length, "loaded at connect, body fetched on invoke"],
   ["C. one line per agent (index)", shapeC.length, "returned by list_agents, on request only"],
   [`fixed tool set (${FIXED_TOOLS} tools)`, fixedToolCost, "loaded at connect, unavoidable"],
 ];
@@ -120,7 +120,7 @@ console.log(
 );
 
 /*
- * THE DECISION THIS SUPPORTS: shape C. Sixty agents ship as MCP PROMPTS, which a
+ * THE DECISION THIS SUPPORTS: shape C. Every agent ships as an MCP PROMPT, which a
  * host fetches on invoke, plus a small fixed tool set, plus `list_agents`
  * returning one line per agent on request. Nothing is hidden: the full membership
  * list is one call away and the tool response says so, which is the property

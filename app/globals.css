@@ -188,7 +188,7 @@ header.top{position:sticky;top:0;z-index:60;border-bottom:1px solid var(--rule);
 .prob{display:grid;grid-template-columns:auto 1fr;gap:1.4rem;padding:1.5rem 0;border-top:1px solid var(--rule);position:relative}
 .prob:last-child{border-bottom:1px solid var(--rule)}
 .prob .n{font-family:var(--mono);font-size:.72rem;color:var(--acc);padding-top:.3rem}
-.prob h3{font-size:1.35rem;font-stretch:112%}
+.prob h2{font-size:1.35rem;font-stretch:112%}
 .prob p{color:var(--mute);font-size:.98rem;margin-top:.5rem;max-width:56ch}
 .before-foot{margin-top:2rem;color:var(--mute);max-width:60ch;font-size:.98rem}
 
@@ -244,7 +244,7 @@ header.top{position:sticky;top:0;z-index:60;border-bottom:1px solid var(--rule);
 .incl{margin-top:clamp(2.5rem,5vw,4rem);display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(2rem,5vw,5rem)}
 @media(max-width:760px){.incl{grid-template-columns:1fr}}
 .incl div{display:grid;grid-template-columns:auto 1fr;gap:.1rem 1rem;padding:1.15rem 0;border-bottom:1px solid var(--rule)}
-.incl h4{font-size:1.08rem;font-stretch:110%;grid-column:2;font-weight:700}
+.incl h3{font-size:1.08rem;font-stretch:110%;grid-column:2;font-weight:700}
 .incl p{font-size:.93rem;color:var(--mute);grid-column:2;margin-top:.25rem}
 .tick{width:18px;height:18px;color:var(--acc);grid-row:span 2;margin-top:.15rem}
 
