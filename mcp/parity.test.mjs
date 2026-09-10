@@ -197,3 +197,36 @@ test("a missing, empty or oversized target is refused with a reason, not a stack
 test("teardown", () => {
   rmSync(dir, { recursive: true, force: true });
 });
+
+test("no blurb reaches a customer carrying raw markdown", async () => {
+  /*
+   * FOUND BY USING THE PRODUCT rather than by reading it. The plan document is
+   * markdown, and a blurb goes straight to a customer through list_agents and
+   * through every department prompt. Three of the sixty-two carried raw
+   * emphasis, so a real MCP client displayed
+   * "pass, fail or **skipped, with a denominator for each**" to a paying
+   * customer.
+   *
+   * Asserted over the WHOLE roster rather than the three that were wrong,
+   * because the plan is markdown by design and the next person to write a seat
+   * will use emphasis again.
+   */
+  const { loadRoster } = await import("../licence/roster.mjs");
+  const roster = loadRoster("docs/AGENT-ROSTER-PLAN.md");
+  assert.equal(roster.size, 62, "the denominator, so this cannot pass over an empty roster");
+
+  const offenders = [...roster.values()].filter((s) => /\*\*|`|\[[^\]]*\]\(/.test(s.blurb));
+  assert.deepEqual(
+    offenders.map((s) => s.id),
+    [],
+    "these blurbs would show markdown syntax to a customer",
+  );
+
+  // And the presence half: the sanitiser must not have eaten the text. These
+  // three are the ones that carried emphasis, so they are the proof it stripped
+  // syntax rather than content.
+  assert.match(roster.get("release-verifier").blurb, /pass, fail or skipped, with a denominator/);
+  assert.match(roster.get("false-positive-hunter").blurb, /Mandatory second reviewer/);
+  assert.ok(roster.get("claims-officer").blurb.length > 40);
+});
+

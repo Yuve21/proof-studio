@@ -347,3 +347,35 @@ first attempt, in four different ways.
   independent measure of the thing it counts.** A sophisticated parser and a dumb string count
   disagreeing is the cheapest possible blind-spot detector.
 
+### P-13 · 2026-09-10 · Ten prompts through a real MCP client found two defects that reading the code had not
+- **Claim:** the server was built, unit tested and committed. Driving it as a customer would, over
+  stdio through a real MCP client, found two things immediately that no test had.
+- **Evidence, and the second one is the interesting defect:**
+  1. **Raw markdown reaching a paying customer.** The roster is parsed out of a markdown document
+     and a blurb goes straight out through `list_agents` and through every department prompt. Three
+     of sixty-two carried emphasis, so a real client displayed
+     `pass, fail or **skipped, with a denominator for each**`. Fixed at the boundary rather than by
+     editing the three lines, because the plan is markdown by design and the next person to write a
+     seat will use emphasis again. Mutation: remove the sanitiser, RED, naming the test.
+  2. **My own verify_fix test was invalid, and it looked like a pass.** I copied the bad fixture,
+     tried to edit the copy with Python using a `/c/Users/...` path, and Windows Python cannot
+     resolve that form. The copy was byte-identical, so `verify_fix` correctly reported
+     "0 resolved, 9 still firing". Real behaviour, wrong test, and the output looked like a
+     considered result rather than a mistake. Redone with node writing the file: the edit landed,
+     and the tool then reported `regression: true`.
+- **What the corrected run demonstrated, which is the part worth keeping.** I fixed four findings and
+  broke ONE thing on purpose (a second h1). `verify_fix` reported three appearances, not one: the
+  deliberate `h1-multiple`, and `title-truncates`, because the title I wrote as a FIX is over sixty
+  characters. **The tool caught a real mistake in my own fix that I had not noticed**, and it stated
+  the regression before the six things that were resolved.
+- **Confidence:** high (ten prompts run against a live stdio server, every result read).
+- **Status:** FIXED both. 81 tests green afterwards.
+- **Next time:** two rules.
+  First, **drive a finished component as its user before believing it is finished.** Unit tests
+  answered every question I thought to ask; the markdown leak was invisible to all of them because
+  no test rendered a blurb the way a client does.
+  Second, and this is the one that generalises: **when a test harness reports a clean result, check
+  that the harness actually changed what it claimed to change.** A silent no-op in a fixture setup
+  produces output indistinguishable from a real pass. The cheap habit is to assert the edit landed,
+  in the same breath as making it, which is the same rule this house already has for mutations.
+

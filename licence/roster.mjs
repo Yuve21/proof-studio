@@ -121,6 +121,28 @@ export function customerFacing(roster) {
  * @param {string} planPath
  * @returns {Map<string, {id: string, kind: "D"|"A", blurb: string}>}
  */
+/**
+ * Strip markdown from a blurb.
+ *
+ * FOUND BY USING THE PRODUCT. The plan document is markdown, and a blurb goes
+ * straight to a customer through `list_agents` and through every department
+ * prompt. Three of the sixty-two carried raw emphasis, so an MCP client showed
+ * `pass, fail or **skipped, with a denominator for each**` to a paying customer.
+ *
+ * Small, and worth fixing properly rather than editing the three: the plan is
+ * markdown by design and the next person to write a seat will use emphasis
+ * again. Stripping at the boundary means the document stays readable as a
+ * document and the customer never sees its syntax.
+ */
+const plainText = (s) =>
+  s
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|\s)\*([^*]+)\*(?=\s|$|[.,;:)])/g, "$1$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
 export function loadRoster(planPath = "docs/AGENT-ROSTER-PLAN.md") {
   const text = readFileSync(planPath, "utf8");
   const seats = [...text.matchAll(/^\d+\. \*\*([a-z-]+)\*\* \[([DA])\]\s*(.+)$/gm)];
@@ -130,7 +152,7 @@ export function loadRoster(planPath = "docs/AGENT-ROSTER-PLAN.md") {
       `registers nothing and reports success is indistinguishable from a broken one.`,
     );
   }
-  return new Map(seats.map((m) => [m[1], { id: m[1], kind: m[2], blurb: m[3].trim() }]));
+  return new Map(seats.map((m) => [m[1], { id: m[1], kind: m[2], blurb: plainText(m[3]) }]));
 }
 
 /**
