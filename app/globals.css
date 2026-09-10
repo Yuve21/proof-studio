@@ -417,3 +417,15 @@ footer{position:relative;overflow:hidden;padding-block:0 2.2rem}
 .subs .btn:disabled{opacity:.6;cursor:default}
 .subs-err{flex:1 1 100%;margin-top:.5rem;font-size:.85rem;line-height:1.45;color:var(--acc)}
 .subs-terms{flex:1 1 100%;margin-top:.7rem;font-size:.78rem;line-height:1.5;color:var(--mute-2);max-width:52ch}
+
+/* ── /terms and /privacy: plain sentences, comfortable measure ───────────────── */
+.tm{margin-top:clamp(2.5rem,5vw,4rem);max-width:74ch}
+.tm h2{margin-top:clamp(2rem,4vw,3rem);font-family:var(--display);
+  font-size:clamp(1.25rem,2.6vw,1.6rem);font-stretch:108%;font-weight:800;line-height:1.2}
+.tm h2:first-child{margin-top:0}
+.tm p{margin-top:.85rem;font-size:1rem;line-height:1.65;color:var(--fg)}
+.tm p b{font-weight:700}
+.tm ul{margin-top:.9rem;display:grid;gap:.5rem}
+.tm li{font-size:.98rem;line-height:1.6;color:var(--mute);padding-left:1rem;
+  border-left:1px solid var(--rule-2)}
+.tm a{color:var(--acc);text-decoration:none;border-bottom:1px solid currentColor}

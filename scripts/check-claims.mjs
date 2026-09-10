@@ -118,6 +118,69 @@ const isMetaLine = (line) =>
     line,
   );
 
+/**
+ * Negations that turn a banned phrase into a DISCLAIMER.
+ *
+ * FOUND BY THIS GUARD FIRING ON HONEST PROSE. The terms page says "Nobody can
+ * promise a ranking, a position, an amount of traffic or a number of customers",
+ * which is the opposite of a ranking promise, and the pattern matched
+ * "promise a ranking" inside it and failed the build.
+ *
+ * That is not a small nuisance. A guard that fires on the exact sentence you
+ * WANT on a legal page gets edited around rather than obeyed, and then it is not
+ * a guard. This project's corpus loader carries the same rule for the same
+ * reason: a guard's false-positive behaviour is a correctness property of the
+ * guard.
+ *
+ * The check is deliberately narrow. It looks for a negation in the SAME sentence
+ * and BEFORE the match, so "we do not promise rankings" passes while "we promise
+ * rankings, and we do not miss" does not. Anything cleverer than that would be
+ * guessing at meaning, and a guard that guesses is worse than one that is
+ * occasionally strict.
+ */
+const NEGATORS =
+  /\b(?:nobody|no one|nothing|never|cannot|can't|do not|does not|don't|doesn't|will not|won't|is not|are not|isn't|aren't|refuse[sd]?|without)\b/i;
+
+/**
+ * How many preceding lines are joined when looking for a negation.
+ *
+ * NOT ONE, AND THIS COST A DEBUGGING PASS. The first version of this check
+ * looked only at the current line, and it still failed on the terms page,
+ * because the sentence WRAPS: "Nobody can" ended one line and
+ * "promise a ranking" began the next. A line-based scanner over wrapped prose
+ * cannot see a negation that fell onto the previous line, so the granularity of
+ * the check did not match the granularity of its input.
+ *
+ * Two lines of lookback covers a sentence wrapped once or twice at this file's
+ * ~100 character width. **A negation more than two lines before its claim is
+ * still invisible**, and that is stated rather than left as a surprise: if it
+ * ever bites, widen this rather than exempting the file.
+ */
+const NEGATION_LOOKBACK = 2;
+
+/**
+ * True when the banned phrase sits inside a negated clause.
+ *
+ * @param {string[]} lines every line in the file
+ * @param {number} lineNo zero-based index of the matching line
+ * @param {number} index where the banned match starts within that line
+ */
+const isNegated = (lines, lineNo, index) => {
+  const prior = lines.slice(Math.max(0, lineNo - NEGATION_LOOKBACK), lineNo).join(" ");
+  const before = `${prior} ${lines[lineNo].slice(0, index)}`;
+
+  // Only the current SENTENCE counts. A negation in the previous sentence says
+  // nothing about this claim, and treating it as though it did would let a real
+  // promise hide behind an unrelated disclaimer one sentence earlier.
+  const sentenceStart = Math.max(
+    before.lastIndexOf(". "),
+    before.lastIndexOf("? "),
+    before.lastIndexOf("! "),
+  );
+  const clause = before.slice(sentenceStart + 1);
+  return NEGATORS.test(clause);
+};
+
 const walk = (dir, out = []) => {
   if (!existsSync(dir)) return out;
   for (const entry of readdirSync(dir)) {
@@ -158,7 +221,11 @@ for (const file of files) {
     if (isMetaLine(line)) return;
     for (const rule of BANNED) {
       const m = line.match(rule.re);
-      if (m) hits.push({ file, line: i + 1, id: rule.id, text: m[0].trim(), why: rule.why });
+      if (!m) continue;
+      // A negated banned phrase is a disclaimer, which is the sentence we WANT
+      // on a legal page. See isNegated for why this is narrow rather than clever.
+      if (typeof m.index === "number" && isNegated(lines, i, m.index)) continue;
+      hits.push({ file, line: i + 1, id: rule.id, text: m[0].trim(), why: rule.why });
     }
   });
 }

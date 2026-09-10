@@ -452,6 +452,8 @@ export default function Page() {
               <a href="/rulebook">The rulebook</a>
               <a href="#pricing">Pricing</a>
               <a href="#apply">Apply</a>
+              <a href="/terms">Terms</a>
+              <a href="/privacy">Privacy</a>
             </div>
           </div>
           <p className="f-note"><b>Said plainly, because the rest of this page asks you to trust us.</b> The prices above are real

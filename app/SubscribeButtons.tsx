@@ -64,7 +64,7 @@ export function SubscribeButtons() {
         Billed monthly, automatically, until you cancel. Cancel any time from your billing page,
         which is one click from your receipt, and you keep the rest of the month you paid for.
         The number quoted is a starting figure and the exact amount is agreed with you before
-        anything is charged.
+        anything is charged. <a href="/terms">Terms</a>, including what an unlimited edit is.
       </p>
     </div>
   );

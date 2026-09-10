@@ -264,3 +264,38 @@ first attempt, in four different ways.
   the expiry condition into the gate when you write the gate, and record its result somewhere
   permanent before switching it off, because the number is the valuable part and the script is not.
 
+### P-11 · 2026-09-10 · The claims guard failed the build on the exact sentence a legal page needs, and the granularity of the check did not match its input
+- **Claim:** `check-claims.mjs` fired `guaranteed-ranking` on the terms page's line
+  "Nobody can promise a ranking, a position, an amount of traffic or a number of customers", which is
+  the OPPOSITE of a ranking promise and is the sentence that page exists to contain.
+- **Why it is not a nuisance:** a guard that fails the build on the sentence you want gets edited
+  around rather than obeyed, and then it is not a guard. This repository's corpus loader carries the
+  same rule for the same reason, in a comment written hours earlier: a guard's false-positive
+  behaviour is a correctness property of the guard.
+- **The first fix was wrong, and the reason is the useful part.** I added a negation check that looked
+  at the current LINE before the match. It still failed. The sentence WRAPS: "Nobody can" ends line
+  130 and "promise a ranking" begins line 131, so a line-based scanner over wrapped prose cannot see
+  a negation that fell onto the previous line. **The granularity of the check did not match the
+  granularity of its input.** Prose wraps; sentences do not respect line boundaries.
+- **Evidence:** `sed -n '128,133p'` shows the wrap directly. With one line of context the guard still
+  failed; with two lines of lookback plus sentence-boundary detection it passes, and four
+  discriminating cases were run by command:
+  | case | expected | result |
+  |---|---|---|
+  | wrapped disclaimer, "Nobody can / promise a ranking" | pass | pass |
+  | unnegated promise on one line | FIRE | fired |
+  | unnegated promise wrapped across two lines | FIRE | fired |
+  | negation in the PREVIOUS sentence, promise in this one | FIRE | fired |
+  That last one matters most: a negation one sentence earlier must not excuse a real claim, or any
+  promise can hide behind an unrelated disclaimer.
+- **Confidence:** high (all four cases run, each reverted).
+- **Status:** FIXED. Two lines of lookback, sentence-bounded, with the limit written into the code:
+  a negation more than two lines before its claim is still invisible, and if that ever bites the
+  answer is to widen the lookback rather than exempt the file.
+- **Next time:** when a text check fires on prose you believe is correct, the first question is not
+  "how do I exempt this" but **"does my check operate on the same unit as the thing it is checking"**.
+  A line-based scanner reading wrapped sentences is a unit mismatch, and a unit mismatch produces
+  false positives that look like a taste disagreement and get resolved by weakening the check. And a
+  negation check must be sentence-scoped in both directions: too narrow and it misses the disclaimer,
+  too wide and it excuses the claim.
+

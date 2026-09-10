@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripeClient, StripeConfigError } from "../../../../lib/billing/stripeClient.mjs";
 import { licenceForPaidPeriod, sessionIsPaid } from "../../../../lib/billing/issueForPayment.mjs";
 import { planForPriceId } from "../../../../lib/billing/catalog.mjs";
+import { sendMail, renewalMessage } from "../../../../lib/mail/send.mjs";
 
 /**
  * Stripe to Proof.
@@ -231,11 +232,50 @@ export async function POST(request: NextRequest) {
             proof_plan: minted.plan.id,
           },
         });
+        /*
+         * DELIVER IT. This is the gap that was named twice before it was closed:
+         * a renewal minted a token into Stripe metadata and the customer was
+         * never told, so they had to come back to a page they had no reason to
+         * visit. Between the ten-day buffer and the seven-day grace they kept
+         * working for over two weeks and then stopped, with no warning anywhere.
+         *
+         * A failed send does NOT fail the webhook. The licence is already minted
+         * and stored, so retrying the whole event would re-mint rather than
+         * re-send, and Stripe retrying a successful payment handler is worse than
+         * an undelivered email. So the send is reported and the event is
+         * acknowledged, and an undelivered renewal is loud in the log because it
+         * is the one thing that leaves a paying customer stuck.
+         */
+        const customerEmail =
+          typeof invoice.customer_email === "string" ? invoice.customer_email : null;
+        let delivery: { sent: boolean; reason?: string; detail?: string } = {
+          sent: false,
+          reason: "no-email-on-invoice",
+        };
+        if (customerEmail) {
+          const msg = renewalMessage({
+            token: minted.token,
+            expires: minted.expires,
+            planName: minted.plan.name,
+          });
+          delivery = await sendMail({ to: customerEmail, subject: msg.subject, text: msg.text });
+        }
+        if (!delivery.sent) {
+          reportBillingProblem("a renewal licence was minted but NOT delivered to the customer", {
+            invoice: invoice.id,
+            customer: customerId,
+            reason: delivery.reason,
+            detail: delivery.detail,
+            note: "they have paid and cannot collect the token without being told; send it by hand",
+          });
+        }
+
         return NextResponse.json({
           received: true,
           handled: true,
           licence: true,
           renewal: true,
+          delivered: delivery.sent,
           token: tokenTail(minted.token),
         });
       }

@@ -9,24 +9,75 @@
      a complete email and hands it to the visitor's mail app. */
   var form = document.getElementById("applyForm");
   var note = document.getElementById("formNote");
-  var TO = "hello@example.com";
+  var TO = "yuvraj.chandyok@gmail.com";
+
+  /* THE ONE INVARIANT: AN APPLICATION MUST NEVER BE SILENTLY LOST.
+
+     This handler previously sent every application to a PLACEHOLDER address,
+     hello@example.com, and then told the visitor it had worked. On a live site
+     that means every application was discarded by a mail server while the person
+     applying saw a confirmation. The free draft is the entire hook and this form
+     is the only way to ask for one, so that was the worst defect on the site.
+
+     So: try the server first, and if the server cannot deliver, fall back to the
+     visitor own mail app with everything filled in. The worst case becomes "you
+     have to press send yourself", never "it vanished". */
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var get = function (id) { return (document.getElementById(id).value || "").trim(); };
+    var payload = {
+      biz: get("biz"), who: get("who"), email: get("email"),
+      social: get("social"), kind: get("kind"), about: get("about"), want: get("want")
+    };
     var lines = [
-      "Business:      " + get("biz"),
-      "Contact:       " + get("who"),
-      "Email:         " + get("email"),
-      "Instagram/web: " + (get("social") || "not given"),
-      "Type:          " + get("kind"),
-      "", "WHAT THEY SELL", get("about"),
-      "", "WHAT THEY WANT THE SITE TO DO", get("want") || "not given"
+      "Business:      " + payload.biz,
+      "Contact:       " + payload.who,
+      "Email:         " + payload.email,
+      "Instagram/web: " + (payload.social || "not given"),
+      "Type:          " + payload.kind,
+      "", "WHAT THEY SELL", payload.about,
+      "", "WHAT THEY WANT THE SITE TO DO", payload.want || "not given"
     ];
-    window.location.href = "mailto:" + TO
-      + "?subject=" + encodeURIComponent("Free draft request: " + get("biz"))
-      + "&body=" + encodeURIComponent(lines.join("\n"));
-    note.textContent = "Your email app should have opened. If it did not, email " + TO + " directly.";
-    note.style.color = "var(--acc)";
+    var btn = form.querySelector("button[type=submit]");
+
+    var mailto = function () {
+      window.location.href = "mailto:" + TO
+        + "?subject=" + encodeURIComponent("Free draft request: " + payload.biz)
+        + "&body=" + encodeURIComponent(lines.join("\n"));
+      note.textContent = "Your email app should have opened with everything filled in. If it did not, email " + TO + " directly.";
+      note.style.color = "var(--acc)";
+    };
+
+    if (btn) { btn.disabled = true; }
+    note.style.color = "var(--mute)";
+    note.textContent = "Sending\u2026";
+
+    fetch("/api/apply", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (btn) { btn.disabled = false; }
+        if (res.ok && data && data.delivered) {
+          note.textContent = "Got it. We will read this properly and come back to you, usually within a day.";
+          note.style.color = "var(--acc)";
+          form.reset();
+          return;
+        }
+        if (res.status === 400 && data && data.error) {
+          /* Their mistake rather than ours: name the field and let them fix it,
+             instead of dumping them into a mail client to work it out. */
+          note.textContent = data.error;
+          note.style.color = "var(--acc)";
+          return;
+        }
+        mailto();
+      });
+    }).catch(function () {
+      if (btn) { btn.disabled = false; }
+      mailto();
+    });
   });
 
   /* ── nav tone ────────────────────────────────────────────────
