@@ -1,17 +1,26 @@
 /**
  * The Proof marketing page.
  *
- * GENERATED from index.html by scripts/html-to-jsx.mjs, then committed. It is not
- * regenerated at build time on purpose: index.html is the historical source, this
- * file is now the one that ships, and two live copies of a page is the defect where
- * a list written twice has nothing comparing the copies.
+ * THIS FILE IS THE SOURCE OF TRUTH for the marketing page.
  *
- * Parity with the original is asserted by scripts/verify-dom-parity.mjs, which
- * renders both in a real browser and diffs the DOM. Read that before editing here.
+ * It was generated once from the original static index.html by
+ * scripts/html-to-jsx.mjs, and DOM parity between the two was proved at 443
+ * nodes with JavaScript disabled on both sides. That proof is recorded in
+ * docs/LEARNINGS.md P-10, and the parity gate is now RETIRED: it asserted a
+ * migration invariant, the migration is done, and keeping it would mean every
+ * change to this page had to be mirrored into a second copy with nothing but
+ * that gate comparing them.
+ *
+ * What replaced it is a better gate. `npm run selfcheck` runs the real rulebook
+ * against the real built page on every verify and fails on abstention. Parity
+ * could only say the page had not changed; the self-check says whether it is any
+ * good.
  *
  * All behaviour lives in public/choreography.js, loaded by app/layout.tsx. This
  * component holds no state and no handlers, which is why a mechanical port was
- * safe: React is rendering markup here, not owning it.
+ * safe in the first place: React renders this markup, it does not own it. A new
+ * section needs the choreography's hooks to animate: data-tone on the section,
+ * data-mask inside an h2 for the heading reveal, data-wake on anything else.
  */
 export default function Page() {
   return (
@@ -33,6 +42,7 @@ export default function Page() {
             <a className="hide-sm" href="#before">Why</a>
             <a className="hide-sm" href="#how">How it works</a>
             <a className="hide-sm" href="#work">The work</a>
+            <a className="hide-sm" href="#team">The team</a>
             <a className="hide-sm" href="#pricing">Pricing</a>
             <a className="btn sm" href="#apply">Get a free draft</a>
           </nav>
@@ -215,6 +225,56 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="team" id="team" data-tone="dark">
+        <div className="wrap">
+          <p className="label acc">After it launches</p>
+          <h2 style={{ marginTop: "1rem", maxWidth: "22ch" }}><span className="line"><span data-mask="">Then somebody checks it. Every month. With receipts.</span></span></h2>
+          <p className="lede" data-wake="">Most studios hand over a site and go quiet. Yours gets checked against a written rulebook,
+            every month, by eight departments that each own one job. You get the findings and we make the fixes. Every finding names the
+            exact thing it looked at, so you can go and check our work instead of taking our word for it.</p>
+
+          <div className="depts" data-wake="">
+            <div><span className="dn">01</span><h3>Found</h3><p>Titles, descriptions, structured data, sitemaps, and whether searching your name finds you.</p></div>
+            <div><span className="dn">02</span><h3>Craft</h3><p>Speed, the phone version, contrast, keyboard access, and anything that has quietly broken.</p></div>
+            <div><span className="dn">03</span><h3>Money</h3><p>Checkout, prices, stock, fees, and every step between a cart and a receipt.</p></div>
+            <div><span className="dn">04</span><h3>Reach</h3><p>What to post, what to send, the shot list, and whether your email actually arrives.</p></div>
+            <div><span className="dn">05</span><h3>Customers</h3><p>The questions you answer fifty times a week, bookings, and what people keep telling you.</p></div>
+            <div><span className="dn">06</span><h3>Business</h3><p>Margins per item, cash timing, and the renewal dates a business forgets until they lapse.</p></div>
+            <div><span className="dn">07</span><h3>Trust</h3><p>What your site claims about you against what you can actually back up, and what it collects.</p></div>
+            <div><span className="dn">08</span><h3>Standards</h3><p>The department that audits the other seven, so a finding you disagree with can be argued.</p></div>
+          </div>
+
+          <div className="receipt" data-wake="">
+            <p className="label">A real check, run on this page, just now</p>
+            <pre>{`seo-onpage  (rulebook onpage-2026.09)
+  status assessed   10 of 10 rules ran
+  read 19 headings, 13 links, 52,393 characters of text
+
+  Nothing fired. Every one of the 10 rules ran and none matched.`}</pre>
+            <p className="receipt-note">Two runs ago it did not say that. It found two headings on this page in the wrong
+              order, named them, and we fixed both. That is the whole point of running it on ourselves first.</p>
+          </div>
+
+          <div className="team-foot" data-wake="">
+            <div>
+              <h4>Every rule is published, including where it is wrong</h4>
+              <p>Each rule carries the case where it gives a false answer, written down before you ask. A check you cannot
+                argue with is a check you should not act on. <a href="/rulebook">Read the rulebook</a>.</p>
+            </div>
+            <div>
+              <h4>Nothing about your business leaves your site</h4>
+              <p>The checks run against your own pages and make no outside requests of any kind. There is no account to
+                create and nothing to upload.</p>
+            </div>
+            <div>
+              <h4>No model decides anything</h4>
+              <p>The same page gets the same result tomorrow, and the reasons are the published rules rather than an
+                opinion. When a check cannot read enough of a page, it says so instead of guessing.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="incl-sec" id="included" data-tone="light" data-flip="">
         <div className="wipe" aria-hidden="true"><i className="la"></i><i className="lb"></i></div>
         <div className="wrap">
@@ -259,7 +319,18 @@ export default function Page() {
                 <li>Hosting, backups and uptime</li>
                 <li>Unlimited edits, same day</li>
               </ul>
-              <p className="monthly">Then <b>from $40</b> a month. Cancel any time.</p>
+              <div className="monthlies">
+                <div>
+                  <span className="mrow"><b>Kept online</b><em>from $40 a month</em></span>
+                  <span className="msub">Hosting, your domain, uptime, and same-day content edits.</span>
+                </div>
+                <div className="mpick">
+                  <span className="mrow"><b>Kept sharp</b><em>from $120 a month</em></span>
+                  <span className="msub">All of Kept online, plus the eight departments checking the site every month,
+                    the fixes made, and the receipt.</span>
+                </div>
+              </div>
+              <p className="monthly">Pick either after launch. Cancel any time.</p>
             </div>
             <div className="tier" data-tier="">
               <span className="label">The draft</span>
@@ -371,13 +442,18 @@ export default function Page() {
             <div className="f-links">
               <a href="#how">How it works</a>
               <a href="#work">The work</a>
+              <a href="#team">The team</a>
+              <a href="/rulebook">The rulebook</a>
               <a href="#pricing">Pricing</a>
               <a href="#apply">Apply</a>
             </div>
           </div>
-          <p className="f-note"><b>Proof</b> is a placeholder name for this studio, and every number, link and contact detail on this page is a
-            placeholder too. The Vermont Maple Lemonade page described in The Work is real and was built on spec; it is a draft shown with
-            that stated, not a paid client engagement. Nothing here claims a client roster, a testimonial or a result that has not happened.</p>
+          <p className="f-note"><b>Said plainly, because the rest of this page asks you to trust us.</b> The prices above are real
+            starting figures and the exact number is quoted after you have seen your draft. The Vermont Maple Lemonade page described in
+            The Work was built on spec and was not a paid commission; it is a draft shown with that stated. We have no client roster to
+            show yet and this page claims none, no testimonials, and no result that has not happened. The check quoted in After it
+            launches was run against this page by the rulebook linked there, and it is the only performance claim anywhere on this site:
+            a count of rules that ran, not a promise about search results. Nobody can promise those.</p>
           <div className="f-big" id="fBig" aria-hidden="true">PROOF</div>
         </div>
       </footer>

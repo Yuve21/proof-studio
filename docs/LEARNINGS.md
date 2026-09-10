@@ -232,3 +232,31 @@ first attempt, in four different ways.
   computed-style measurement returns suspiciously round defaults, check that the stylesheet actually
   loaded before believing the numbers.
 
+### P-10 · 2026-09-09 · The parity gate is retired on purpose, and this is the record it produced
+- **Claim:** `scripts/verify-dom-parity.mjs` asserted that the Next build renders the same DOM as the
+  original static `index.html`. It did that successfully, and it is now removed from the verify
+  chain, because the migration it was guarding is complete and the gate had become a lock on the
+  page.
+- **The proof, recorded here so removing the gate does not remove the evidence:** 443 nodes
+  identical, compared by depth, tag, sorted attribute set and own text, with JavaScript disabled on
+  both sides, at commit `328a7b1`. It survived a heading-level change applied to both copies, which
+  is the strongest single demonstration: the DOM moved and the two copies moved together.
+- **Why removing it is not the thing this house warns about.** The rule is never widen a baseline to
+  make a run go green, and never fix a gate by loosening what it accepts. This gate is not being
+  loosened, and the property it asserted has not become inconvenient: it has become FALSE ON PURPOSE.
+  It asserted a MIGRATION invariant, that two artifacts are identical. The moment the marketing page
+  is deliberately changed, `index.html` is either updated in lockstep, which is two copies of the
+  truth with nothing but this gate comparing them, or it is stale, which the gate reports as a defect
+  when it is actually a decision. Neither is a correctness property worth holding.
+- **What replaces it, because a gate should not be removed without one.** `npm run selfcheck`, which
+  runs the real rulebook against the real built page on every verify and fails on abstention. That is
+  a stronger ongoing gate than parity ever was: parity could only tell us the page had not changed,
+  and the self-check tells us whether the page is any good.
+- **Confidence:** high (the parity result was reproduced many times, including under five mutations).
+- **Status:** RETIRED. The script stays in the tree, runnable by hand against a frozen `index.html`
+  if anyone wants to re-derive the number, and `index.html` is deleted once Vercel is serving.
+- **Next time:** distinguish a gate that asserts CORRECTNESS from one that asserts a MIGRATION. The
+  second kind has a natural end, and keeping it past that end turns a proof into an obstacle. Write
+  the expiry condition into the gate when you write the gate, and record its result somewhere
+  permanent before switching it off, because the number is the valuable part and the script is not.
+

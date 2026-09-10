@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 
@@ -18,12 +18,15 @@ export const metadata: Metadata = {
     url: SITE,
   },
   twitter: { card: "summary_large_image" },
-  themeColor: "#14161A",
   icons: {
     icon:
       "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234B3BFF'/%3E%3Cpath d='M19.5 8.5H8.5v15h15V12.5' fill='none' stroke='%23F5F5F3' stroke-width='4'/%3E%3Crect x='21' y='6.5' width='7.5' height='7.5' fill='%23F5F5F3'/%3E%3C/svg%3E",
   },
 };
+
+// themeColor moved out of metadata: Next warns that it belongs in a viewport
+// export, and a build warning nobody acts on is how a real one gets missed.
+export const viewport: Viewport = { themeColor: "#14161A" };
 
 /**
  * JSON-LD. Carried verbatim from index.html except for the URL.

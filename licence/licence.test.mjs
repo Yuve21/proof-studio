@@ -10,8 +10,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateKeyPairSync, sign } from "node:crypto";
-import { entitlement, GRACE_DAYS } from "./verify.mjs";
+import { generateKeyPairSync, sign, createPublicKey } from "node:crypto";
+import { entitlement, GRACE_DAYS, ISSUER_PUBLIC_KEYS } from "./verify.mjs";
 import { issue } from "./issue.mjs";
 import { registrable, TIERS, loadRoster } from "./roster.mjs";
 
@@ -190,12 +190,49 @@ test("a token whose key id names a key signed by someone else is refused", () =>
 });
 
 test("a build with no issuer key compiled in entitles nobody", () => {
-  // The default export is the placeholder, so this is the real default behaviour
-  // of an unconfigured build, not a synthetic case.
-  const r = entitlement(good());
+  /*
+   * This used to read the default export, because the default WAS the
+   * placeholder. A real key is now compiled in, so the empty map is injected
+   * explicitly. The property under test has not changed and neither has the
+   * assertion; only the way the state is reached.
+   *
+   * The alternative was to delete the test as "no longer reachable", which would
+   * have removed the only check that an unconfigured build fails closed, on the
+   * day that state stopped being the default and therefore stopped being noticed.
+   */
+  const r = entitlement(good(), { publicKeys: {} });
   assert.equal(r.valid, false);
   assert.match(r.reason, /no issuer public key/);
   assert.deepEqual(r.agents, []);
+});
+
+test("the key compiled into THIS build is present and is a real Ed25519 key", () => {
+  /*
+   * The check that catches shipping a build nobody can use. It cannot verify a
+   * real token, because the private half is deliberately not in this repository,
+   * so it verifies the two things it can: a key exists, and it is the right kind
+   * of key for the algorithm this verifier hardcodes.
+   *
+   * Stated plainly: this does NOT prove the embedded key matches the private key
+   * the billing system holds. Only issuing a token and verifying it does that,
+   * and it was done by hand on 2026-09-09 against cus_demo_0001. If the two ever
+   * diverge, every customer sees "this token was not issued by us", which is at
+   * least the correct failure.
+   */
+  const ids = Object.keys(ISSUER_PUBLIC_KEYS);
+  assert.ok(ids.length >= 1, "a shipped build with no issuer key entitles nobody");
+  for (const id of ids) {
+    assert.match(id, /^[a-z0-9][a-z0-9_-]{0,31}$/, `key id ${id} is not a plausible id`);
+    const pem = ISSUER_PUBLIC_KEYS[id];
+    assert.ok(pem.includes("BEGIN PUBLIC KEY"), `key ${id} is not a PEM public key`);
+    const key = createPublicKey(pem);
+    assert.equal(key.asymmetricKeyType, "ed25519", `key ${id} is not ed25519`);
+  }
+  // And a token signed by a key we do NOT hold is refused under the real map,
+  // so the embedded key is actually being used rather than bypassed.
+  const r = entitlement(good());
+  assert.equal(r.valid, false);
+  assert.match(r.reason, /not issued by us/);
 });
 
 test("a corrupt issuer key entitles NOBODY, rather than everybody", () => {

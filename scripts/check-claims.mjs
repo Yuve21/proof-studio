@@ -27,8 +27,8 @@
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 
-const SCAN_DIRS = ["app", "components", "docs"];
-const SCAN_EXT = new Set([".tsx", ".ts", ".jsx", ".js", ".md", ".mdx", ".html", ".json"]);
+const SCAN_DIRS = ["app", "components", "docs", "corpus", "report", "licence"];
+const SCAN_EXT = new Set([".tsx", ".ts", ".jsx", ".js", ".mjs", ".md", ".mdx", ".html", ".json"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", "public"]);
 
 /**
@@ -36,7 +36,13 @@ const SKIP_DIRS = new Set(["node_modules", ".next", ".git", "public"]);
  * from the scan is a failure rather than a quieter pass. Every customer-facing
  * surface belongs here as it is created.
  */
-const REQUIRED_FILES = ["app/page.tsx", "app/layout.tsx", "docs/AGENT-ROSTER-PLAN.md"];
+const REQUIRED_FILES = [
+  "app/page.tsx",
+  "app/layout.tsx",
+  "app/rulebook/page.tsx",
+  "corpus/seo-onpage.mjs",
+  "docs/AGENT-ROSTER-PLAN.md",
+];
 
 /**
  * Every pattern carries the reason it is banned, because a guard whose message is

@@ -109,11 +109,20 @@ const DAY = 86_400_000;
  * system's secret store and nowhere else, never into this repository.
  */
 export const ISSUER_PUBLIC_KEYS = {
-  // Shape: { "k1": <the SPKI PEM string, newlines and all>, "k2": ... }
-  // Described rather than shown with an escaped example on purpose: writing an
-  // escaped newline into this file through a generator broke the literal three
-  // times in one session (docs/LEARNINGS.md P-04). Paste the PEM as a real
-  // template literal and the problem does not exist.
+  // k1, generated 2026-09-09. The matching private key lives OUTSIDE this
+  // repository and is not in version control. To rotate: generate a new pair,
+  // add it here as k2, cut new tokens with k2, and delete k1 once the last k1
+  // token has expired. Retiring a key is a deletion from this object and it is
+  // immediate: a build that does not carry the key cannot be talked into
+  // trusting it.
+  //
+  // Written as a template literal so the PEM keeps its real newlines. An
+  // escaped example broke this literal three times in one session
+  // (docs/LEARNINGS.md P-04), which is why nothing here is escaped.
+  k1: `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAy1MvndiQt12C12KF1eEhopo53zPCFwjEh2VDwqynxL0=
+-----END PUBLIC KEY-----
+`,
 };
 
 const b64urlToBuffer = (s) => {
