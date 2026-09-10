@@ -3,13 +3,16 @@
  *
  * THIS FILE IS THE SOURCE OF TRUTH for the marketing page.
  *
- * It was generated once from the original static index.html by
- * scripts/html-to-jsx.mjs, and DOM parity between the two was proved at 443
- * nodes with JavaScript disabled on both sides. That proof is recorded in
- * docs/LEARNINGS.md P-10, and the parity gate is now RETIRED: it asserted a
- * migration invariant, the migration is done, and keeping it would mean every
- * change to this page had to be mirrored into a second copy with nothing but
- * that gate comparing them.
+ * It was generated once from the original static index.html by a converter, and
+ * DOM parity between the two was proved at 443 nodes with JavaScript disabled on
+ * both sides. Both the converter and index.html are DELETED: the proof is
+ * recorded in docs/LEARNINGS.md P-10 and the number does not need the script
+ * that produced it. Do not go looking for them.
+ *
+ * The parity gate is retired for the same reason. It asserted a migration
+ * invariant, the migration is done, and keeping it would mean every change to
+ * this page had to be mirrored into a second copy with nothing but that gate
+ * comparing them.
  *
  * What replaced it is a better gate. `npm run selfcheck` runs the real rulebook
  * against the real built page on every verify and fails on abstention. Parity

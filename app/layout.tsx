@@ -2,7 +2,24 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 
-const SITE = "https://proof-studio.vercel.app";
+/*
+ * THE LIVE URL, AND WHY IT IS NOT THE PRETTY ONE.
+ *
+ * This was "https://proof-studio.vercel.app" and that domain belongs to SOMEBODY
+ * ELSE: it is claimed by an unrelated Vercel account and serves an app titled
+ * "Portfolio". Measured 2026-09-10, curl returns 200 and 400 bytes of a
+ * different site.
+ *
+ * That mattered more than a broken link. It was the canonical URL, the og:image
+ * host and the JSON-LD url, so every one of those was telling a search engine and
+ * every social preview that this page's content belongs to a stranger's domain.
+ * A canonical pointing somewhere you do not control is the one meta tag that can
+ * actively hand your pages away.
+ *
+ * A real custom domain is the fix and it is a purchase, not a code change. Until
+ * then this is the true production alias, which is ugly and correct.
+ */
+const SITE = "https://proof-studio-yuvrajrobotics-4330s-projects.vercel.app";
 
 export const metadata: Metadata = {
   title: "Proof, we build your site first",

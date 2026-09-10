@@ -253,8 +253,12 @@ first attempt, in four different ways.
   a stronger ongoing gate than parity ever was: parity could only tell us the page had not changed,
   and the self-check tells us whether the page is any good.
 - **Confidence:** high (the parity result was reproduced many times, including under five mutations).
-- **Status:** RETIRED. The script stays in the tree, runnable by hand against a frozen `index.html`
-  if anyone wants to re-derive the number, and `index.html` is deleted once Vercel is serving.
+- **Status:** RETIRED, and the whole migration scaffold is deleted: `index.html`,
+  `scripts/verify-dom-parity.mjs` and `scripts/html-to-jsx.mjs` all went in the same commit that
+  put Vercel live. An earlier draft of this entry said the script would stay in the tree "runnable
+  by hand against a frozen index.html", and that was incoherent: deleting the input makes the script
+  unrunnable, and keeping a script that cannot run is the decoration this project is against. The
+  proof is the number, recorded above, and the number does not need the script that produced it.
 - **Next time:** distinguish a gate that asserts CORRECTNESS from one that asserts a MIGRATION. The
   second kind has a natural end, and keeping it past that end turns a proof into an obstacle. Write
   the expiry condition into the gate when you write the gate, and record its result somewhere
