@@ -1,0 +1,25 @@
+{
+  "name": "proof-studio",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3210",
+    "build": "next build",
+    "start": "next start -p 3210",
+    "typecheck": "tsc --noEmit",
+    "claims:check": "node scripts/check-claims.mjs",
+    "parity:check": "node scripts/verify-dom-parity.mjs",
+    "verify": "npm run typecheck && npm run claims:check && npm run build && npm run parity:check"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "playwright": "^1.48.0",
+    "typescript": "^5.6.0"
+  }
+}
