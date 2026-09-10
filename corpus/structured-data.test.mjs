@@ -10,7 +10,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseHTML } from "linkedom";
+import { factsFromHtml } from "../mcp/dom.mjs";
 import { loadCorpus } from "./load.mjs";
 import * as sd from "./seo-structured-data.mjs";
 import {
@@ -38,8 +38,9 @@ const page = (jsonLd, body = "") => {
 
 const run = (html) => {
   const corpus = loadCorpus(sd);
-  const { document } = parseHTML(html);
-  const facts = new Function("document", `return (${corpus.collect.toString()})();`)(document);
+  // THE SAME boundary the customer's install uses, so the suite cannot be green
+  // against a DOM production does not have. See mcp/parser-conformance.mjs.
+  const facts = factsFromHtml(html, corpus.collect);
   return { report: assess(corpus, facts), facts };
 };
 const firedIds = (report) => new Set(report.findings.map((f) => f.ruleId));

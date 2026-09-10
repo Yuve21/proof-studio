@@ -24,6 +24,7 @@
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { parseHTML } from "linkedom";
+import { conformToHtmlParsing } from "./parser-conformance.mjs";
 
 /** Refuse a file that is not plausibly a page, before parsing megabytes of it. */
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -60,8 +61,33 @@ export function factsFromFile(target, collect) {
     throw new TargetError(`${target} is ${stat.size} bytes, over the ${MAX_BYTES} limit for one page`);
   }
 
-  const html = readFileSync(abs, "utf8");
+  return factsFromHtml(readFileSync(abs, "utf8"), collect);
+}
+
+/**
+ * The same thing for HTML already in memory, and THE ONE PLACE a document is
+ * parsed.
+ *
+ * Extracted so that the corpus tests run against the identical boundary the
+ * customer's install uses. When each test file called `parseHTML` itself, the
+ * tests were exercising a slightly different DOM from production: the attribute
+ * case normalisation below was absent from the test path, so a rule could be
+ * green in the suite and wrong on a real React page. That is the two
+ * implementations of one behaviour problem, arriving between the tests and the
+ * thing they test.
+ *
+ * @param {string} html
+ * @param {(doc: object) => object} collect
+ */
+export function factsFromHtml(html, collect) {
   const { document } = parseHTML(html);
+
+  /*
+   * Make the parser agree with a browser BEFORE any rule looks at the document.
+   * See mcp/parser-conformance.mjs for the three divergences this corrects and
+   * the two live false positives that paid for the first one.
+   */
+  conformToHtmlParsing(document);
 
   /*
    * `collect` was written to run inside a browser, where `document` is a global.

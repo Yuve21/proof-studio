@@ -12,7 +12,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseHTML } from "linkedom";
+import { factsFromHtml } from "../mcp/dom.mjs";
 import { loadCorpus } from "./load.mjs";
 import * as accessibility from "./accessibility.mjs";
 import * as forms from "./forms-and-capture.mjs";
@@ -22,8 +22,9 @@ import { CONCRETE_ROLES, ABSTRACT_ROLES, ALL_ROLES, classifyRole } from "./aria-
 /** Run a corpus over an HTML string without a browser or a temp file. */
 const run = (mod, html) => {
   const corpus = loadCorpus(mod);
-  const { document } = parseHTML(html);
-  const facts = new Function("document", `return (${corpus.collect.toString()})();`)(document);
+  // THE SAME boundary the customer's install uses, so the suite cannot be green
+  // against a DOM production does not have. See mcp/parser-conformance.mjs.
+  const facts = factsFromHtml(html, corpus.collect);
   return { report: assess(corpus, facts), facts, corpus };
 };
 

@@ -564,3 +564,66 @@ first attempt, in four different ways.
   that grows, or check the property you actually care about, which is usually not a count.
   **A number in prose that a customer would act on belongs in a gate.** Not the prose around it,
   which still needs a reader, but the arithmetic and the names, which do not.
+
+### P-20 · 2026-09-10 · The two DOM implementations disagreed, and our own page paid for it
+- **Claim:** the corpus runs under a real browser on our side and linkedom on the customer's. They
+  disagree about the DOM they produce, and two rules were silently wrong in the direction that
+  accuses honest work.
+- **How it surfaced:** a dogfood test in the new `seo-technical` rulebook reported that our own home
+  page has no charset declaration. It is the FIRST element in the head.
+- **The three divergences, all measured rather than assumed:**
+  1. **Attribute name case.** The parsing specification lowercases attribute names in the HTML
+     namespace, so a browser reading `<meta charSet="utf-8">` exposes `charset`. linkedom preserves
+     the written case, so `getAttribute("charset")` returns null. React serialises several DOM
+     properties in camelCase, which makes this the DEFAULT output of the framework our own site is
+     built with: measured across our built pages, `charSet`, `autoComplete`, `fetchPriority`,
+     `noModule` and `viewBox`.
+  2. **The implied `tbody`.** A browser wraps a `tr` that is a direct child of `table` in a
+     generated `tbody`, so it reports one more element than linkedom for the same markup. The
+     consequence is a DENOMINATOR that differs between the receipt we send and the run on the
+     customer's machine, which is worse than either being wrong alone.
+  3. **Foreign element tagName case.** A browser reports `svg`, linkedom reports `SVG`.
+- **What it would have cost:** `technical.charset-missing-or-late` and `forms.autocomplete-missing`
+  would both have reached a customer as a citation about markup that is correct.
+- **Why the parity test did not catch it, which is the real finding.** The gate existed and was
+  green. It compared ONE rulebook of five, against a fixture I wrote by hand in lowercase HTML. The
+  comparison was sound; the coverage was the hole. A gate that compares a tenth of the surface is
+  not a weaker version of a gate that compares all of it, it is a gate that reports success while
+  not doing its job.
+- **Confidence:** high. All three reproduced against a real Chromium, and mutations disabling each
+  correction turn the parity suite red.
+- **Status:** FIXED. `mcp/parser-conformance.mjs` corrects all three at the DOM boundary, in one
+  place, so every rule and every rule not yet written gets the same fix. `factsFromHtml` is now the
+  single place a document is parsed and the corpus tests were rewired through it, because they had
+  been calling `parseHTML` themselves and so were green against a DOM production did not have.
+  Parity now covers EVERY corpus against a fixture written the way React serialises a page.
+- **Next time:** three habits.
+  **A parity gate's coverage is part of its correctness.** Derive the list it compares from the
+  same export the product ships (`CORPORA`), never from a hand-written subset.
+  **A hand-written fixture tests the markup you would write.** At least one fixture has to be
+  written the way the framework actually serialises, camelCase attributes and omitted `tbody`
+  included.
+  **Tests must enter through the production boundary.** Four test files parsing their own DOM was
+  a fifth implementation, and it was the one that was green.
+
+### P-21 · 2026-09-10 · A mutation harness that credited the wrong gate
+- **Claim:** the mutation harness reported "killed by the named gate" for twelve mutations. For one
+  of them that was false, and the check that produced it could not have been true or false: it
+  tested whether the gate's name appeared ANYWHERE in the output, and `node --test` prints every
+  test name it ran, passing ones included.
+- **What it hid:** a mutation making the foreign-element carve-out case-sensitive again SURVIVED the
+  parity suite. That survival was the useful signal, because it proved a comment in the file was
+  false: it claimed the uppercase comparison "would have silently lowercased viewBox in a browser",
+  and the normaliser never runs in a browser at all. The broken attribution reported the mutation as
+  killed and the false explanation would have stayed published.
+- **The fix:** a gate counts as the named gate only if it appears on a FAILING line. With that, the
+  mutation reported honestly, the comment was corrected in place, and the guarantee parity cannot
+  observe is now covered by a direct predicate test instead.
+- **Confidence:** high (both the false and the corrected attribution were run and printed).
+- **Status:** FIXED in the harness. The corrected run: eleven mutations killed by their named gate
+  and one killed by the test written specifically because parity cannot see it.
+- **Next time:** **attribute a kill to a gate by matching the FAILURE, never the output.** Tools
+  echo their inputs, and a substring search over a whole log is satisfied by the thing you were
+  looking for being mentioned. This is the third distinct way a harness has produced a
+  confident wrong answer in two days: an edit that never landed, the wrong stream, and now the
+  wrong line. All three printed something in the shape of a result.

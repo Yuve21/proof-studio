@@ -21,9 +21,12 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { parseHTML } from "linkedom";
 import { chromium } from "playwright";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
+import { CORPORA } from "../report/run.mjs";
+import { conformToHtmlParsing, isForeignRoot } from "./parser-conformance.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 
@@ -230,3 +233,205 @@ test("no blurb reaches a customer carrying raw markdown", async () => {
   assert.ok(roster.get("claims-officer").blurb.length > 40);
 });
 
+
+/**
+ * THE GAP THAT LET A REAL DEFECT THROUGH, closed here.
+ *
+ * Everything above compares ONE rulebook, `seo-onpage`, against a fixture I wrote
+ * by hand in lowercase HTML. Both halves of that turned out to matter.
+ *
+ * A dogfood test in `corpus/technical.test.mjs` reported that our own home page
+ * has no charset declaration. It is the first element in the head. The cause was
+ * that linkedom preserves attribute case while a browser lowercases it, and React
+ * emits `charSet`, so `getAttribute("charset")` returned null on the customer's
+ * path and the correct value in a browser. `forms.autocomplete-missing` had the
+ * same defect against React's `autoComplete`.
+ *
+ * The parity test could not see either, for two reasons that are both about
+ * coverage rather than about the comparison: the fixture contained no camelCase
+ * attribute, and four of the five rulebooks were not compared at all.
+ *
+ * So this fixture is deliberately written the way React SERIALISES a page, and
+ * the comparison runs over every corpus the product ships.
+ */
+const REACT_FIXTURE = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charSet="utf-8"/>
+  <title>A page serialised the way React writes one, with camelCase attribute names</title>
+  <meta name="description" content="A description."/>
+  <link rel="canonical" href="https://example.test/"/>
+  <link rel="alternate" hrefLang="en-GB" href="https://example.test/gb"/>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Example","url":"https://example.test/"}</script>
+</head>
+<body>
+  <main>
+    <h1>The heading</h1>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z"/></svg>
+    <form action="/api/apply" method="post">
+      <label for="email">Your email</label>
+      <input id="email" name="email" type="email" autoComplete="email" required/>
+      <input id="tel" name="tel" type="tel" autoComplete="tel"/>
+      <button type="submit">Apply</button>
+    </form>
+    <table>
+      <tr><th scope="col">Item</th><th scope="col">Price</th></tr>
+      <tr><td colSpan="2">Nothing yet</td></tr>
+    </table>
+    <a href="/about" tabIndex="0">About us and what we do</a>
+    <p>Enough body text that the readability floor is comfortably cleared, because a thin page is
+    withheld rather than assessed and that would make this fixture test abstention instead of
+    parity. This sentence exists to add length and it is doing its job.</p>
+  </main>
+</body>
+</html>`;
+
+
+/**
+ * Its own temp directory, created on demand. The shared one above is removed by
+ * the teardown test, and these tests run after it: reusing it produced an ENOENT
+ * that looked like a parity failure rather than a harness mistake.
+ */
+const reactFixtureFile = () => {
+  const d = mkdtempSync(path.join(tmpdir(), "proof-parity-react-"));
+  const p = path.join(d, "react.html");
+  writeFileSync(p, REACT_FIXTURE, "utf8");
+  return p;
+};
+
+test("the normaliser actually renames something, so parity below cannot pass by doing nothing", () => {
+  /*
+   * The denominator for the two tests that follow. If the fixture stopped
+   * containing a camelCase attribute, or the normaliser became a no-op, the
+   * comparisons would still pass and would be proving nothing. This asserts the
+   * divergence EXISTS before asserting it is corrected.
+   */
+  const { document } = parseHTML(REACT_FIXTURE);
+  const before = document.querySelector("meta[charset]");
+  assert.equal(before, null, "linkedom must NOT match charset before normalisation, or this whole file is moot");
+
+  // And the second divergence: a browser generates a tbody, linkedom does not.
+  assert.equal(document.querySelectorAll("tbody").length, 0, "linkedom must not generate a tbody, or that half is moot");
+
+  const result = conformToHtmlParsing(document);
+  assert.ok(result.attributes.renamed >= 5, `expected several renames, got ${result.attributes.renamed}`);
+  assert.deepEqual(result.attributes.names, ["autoComplete", "charSet", "colSpan", "hrefLang", "tabIndex"]);
+  assert.ok(document.querySelector("meta[charset]"), "charset must match after normalisation");
+  assert.ok(result.tbody.groups >= 1, "a tbody must have been generated");
+  assert.equal(document.querySelectorAll("tbody").length, result.tbody.groups);
+  // The rows moved INTO it rather than being copied, so the table still has each row once.
+  assert.equal(document.querySelectorAll("table > tr").length, 0, "no tr may remain a direct child of table");
+  assert.equal(document.querySelectorAll("table tr").length, result.tbody.wrapped);
+
+  // And SVG is left alone, because its attributes are genuinely case-sensitive.
+  assert.equal(document.querySelector("svg").getAttribute("viewBox"), "0 0 24 24");
+  assert.equal(document.querySelector("svg").getAttribute("viewbox"), null);
+});
+
+test("EVERY corpus collects the same facts and reports the same findings under both DOMs", async () => {
+  const reactFile = reactFixtureFile();
+
+  const browser = await chromium.launch();
+  const results = [];
+  try {
+    const ctx = await browser.newContext({ javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto(pathToFileURL(reactFile).href, { waitUntil: "domcontentloaded" });
+
+    for (const mod of CORPORA) {
+      const corpus = loadCorpus(mod);
+      const parsed = factsFromFile(reactFile, corpus.collect);
+      const real = await page.evaluate(corpus.collect);
+      results.push({ corpus, parsed, real });
+    }
+  } finally {
+    await browser.close();
+  }
+
+  // The denominator, asserted before any comparison. Five empty objects would
+  // compare equal five times and certify silence.
+  assert.equal(results.length, CORPORA.length);
+  assert.ok(results.length >= 5, `expected every shipped rulebook, got ${results.length}`);
+
+  for (const { corpus, parsed, real } of results) {
+    for (const key of Object.keys(real.counts)) {
+      if (key === "bodyTextLength") {
+        // Legitimately differs by whitespace handling; compared against a floor.
+        assert.ok(
+          Math.abs(parsed.counts[key] - real.counts[key]) < 80,
+          `${corpus.id}: body text length differs by more than whitespace: ` +
+            `${parsed.counts[key]} vs ${real.counts[key]}`,
+        );
+        continue;
+      }
+      assert.equal(
+        parsed.counts[key],
+        real.counts[key],
+        `${corpus.id}: counts.${key} differs between the parser and a browser ` +
+          `(${parsed.counts[key]} vs ${real.counts[key]})`,
+      );
+    }
+
+    const ids = (facts) =>
+      assess(corpus, facts)
+        .findings.map((f) => `${f.ruleId}@${f.evidence.selector}`)
+        .sort();
+    assert.deepEqual(
+      ids(parsed),
+      ids(real),
+      `${corpus.id}: the two paths report different findings on React-serialised markup`,
+    );
+  }
+});
+
+test("and the React fixture proves the specific rules that were wrong are now right", async () => {
+  /*
+   * Parity alone would be satisfied if BOTH paths were wrong in the same way, so
+   * this asserts the actual answer rather than only that the two agree. These are
+   * the two rules that were silently reporting correct markup as defective.
+   */
+  const reactFile = reactFixtureFile();
+
+  for (const mod of CORPORA) {
+    const corpus = loadCorpus(mod);
+    const report = assess(corpus, factsFromFile(reactFile, corpus.collect));
+    const fired = new Set(report.findings.map((f) => f.ruleId));
+
+    if (corpus.id === "seo-technical") {
+      assert.ok(
+        !fired.has("technical.charset-missing-or-late"),
+        "the charset is the first element in head; reporting it missing is the defect this closes",
+      );
+    }
+    if (corpus.id === "forms-and-capture") {
+      assert.ok(
+        !fired.has("forms.autocomplete-missing"),
+        "both fields carry autoComplete; reporting it missing is the same defect",
+      );
+    }
+  }
+});
+
+test("the foreign-element carve-out is case-insensitive, which parity CANNOT observe", () => {
+  /*
+   * A mutation making this comparison case-sensitive again survived the whole
+   * parity suite, and the reason is worth stating: the normaliser only runs on
+   * the linkedom path, because a browser needs no correction, so the browser's
+   * lowercase `svg` spelling is never reached there. The uppercase comparison was
+   * correct against today's parser.
+   *
+   * The case-insensitive version stays as defence against that spelling changing,
+   * and it is tested here rather than through parity, because a guarantee no test
+   * can observe is not a guarantee. It is asserted against BOTH spellings, which
+   * is the whole content of the claim.
+   */
+  for (const tagName of ["svg", "SVG", "math", "MATH"]) {
+    assert.equal(isForeignRoot({ tagName }), true, `${tagName} is foreign content`);
+  }
+  for (const tagName of ["div", "DIV", "meta", "META", "svgicon", ""]) {
+    assert.equal(isForeignRoot({ tagName }), false, `${tagName} is not foreign content`);
+  }
+  // And a missing tagName must not throw, because the walk up parentElement
+  // reaches nodes this predicate was not written for.
+  assert.equal(isForeignRoot({}), false);
+});

@@ -22,6 +22,7 @@ import * as accessibility from "../corpus/accessibility.mjs";
 import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
 import * as claimsOfficer from "../corpus/claims-officer.mjs";
 import * as seoStructuredData from "../corpus/seo-structured-data.mjs";
+import * as seoTechnical from "../corpus/seo-technical.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 import { TIERS } from "../licence/roster.mjs";
@@ -40,6 +41,7 @@ const CORPORA = {
   "forms-and-capture": formsAndCapture,
   "claims-officer": claimsOfficer,
   "seo-structured-data": seoStructuredData,
+  "seo-technical": seoTechnical,
 };
 
 /**
