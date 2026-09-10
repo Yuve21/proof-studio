@@ -23,10 +23,15 @@ import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Entry points for code that RUNS ON A CUSTOMER MACHINE. Add the MCP server's
- * entry here the moment it exists. The empty state is reported, never passed.
+ * Entry points for code that RUNS ON A CUSTOMER MACHINE.
+ *
+ * This was empty for as long as the MCP server did not exist, and the script
+ * printed that fact on every run rather than a green tick, because a graph check
+ * over zero entry points is the shape of a gate that scans nothing and reports
+ * success. The server exists now, so the graph is real and the check has teeth
+ * for the first time.
  */
-const SHIPPING_ENTRIES = [];
+const SHIPPING_ENTRIES = ["mcp/bin.mjs"];
 
 /** Files allowed to import the signing path. Anything else is a failure. */
 const SIGNING_IMPORTERS_ALLOWED = [
@@ -51,15 +56,73 @@ const fail = (msg) => {
 
 const rel = (p) => path.relative(".", p).split(path.sep).join("/");
 
-/** Every static import specifier in a file, plus any dynamic import it attempts. */
+/**
+ * Every static import specifier in a file, plus any dynamic import it attempts.
+ *
+ * THE PATTERN ALLOWS NEWLINES, AND THAT WAS A REAL HOLE. The first version used
+ * `[^\n;]*?` between `import` and `from`, so it could only see a SINGLE-LINE
+ * import. A multi-line one, which is the ordinary style for several named
+ * imports, was invisible:
+ *
+ *     import {
+ *       listAgents,
+ *       getBrief,
+ *     } from "./tools.mjs";
+ *
+ * Measured on the day the gate got a real graph to walk: it saw ONE of the two
+ * local imports in `mcp/bin.mjs`, missed `./tools.mjs`, and therefore walked 3
+ * files instead of 8 while printing "licence/issue.mjs is unreachable". Sound
+ * about what it examined, and examining a fraction of the graph. That is L-15's
+ * defect inside the gate that protects the signing key.
+ *
+ * `[^;]*?` allows newlines but not semicolons, so it still cannot run past the
+ * end of a statement, and it errs toward finding MORE edges, which is the safe
+ * direction for a reachability check.
+ */
+/**
+ * Strip comments before counting anything.
+ *
+ * Needed because the completeness check below fired on this very file: its own
+ * comments contain an EXAMPLE multi-line import, `} from "./tools.mjs";`, which
+ * the crude counter read as a real one. Both measures are about code, so both
+ * must see code. A check that cannot tell an example from the thing it exemplifies
+ * will always fire first on the file that documents it.
+ */
+const codeOnly = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 const importsOf = (file) => {
-  const src = readFileSync(file, "utf8");
-  const statics = [...src.matchAll(/(?:^|\n)\s*(?:import|export)[^\n;]*?from\s*["']([^"']+)["']/g)].map(
+  const src = codeOnly(readFileSync(file, "utf8"));
+  const statics = [...src.matchAll(/(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']/g)].map(
     (m) => m[1],
   );
   const bareImports = [...src.matchAll(/(?:^|\n)\s*import\s*["']([^"']+)["']/g)].map((m) => m[1]);
   const dynamic = [...src.matchAll(/\bimport\s*\(\s*([^)]*)\)/g)].map((m) => m[1].trim());
-  return { statics: [...statics, ...bareImports], dynamic };
+  const found = [...statics, ...bareImports];
+
+  /*
+   * THE COMPLETENESS CHECK, which is what would have caught the above
+   * immediately instead of a day later.
+   *
+   * A second, independent and much cruder count of local specifiers: every
+   * occurrence of `from "."`. It cannot be fooled by statement shape because it
+   * does not parse statements. If the parser finds fewer local imports than the
+   * crude count, the parser has a blind spot and the whole reachability result is
+   * worthless, so it fails rather than reporting a smaller graph.
+   *
+   * Two measures of one quantity, neither derived from the other. That is the
+   * only kind of self-check worth having.
+   */
+  const crudeLocal = (src.match(/from\s*["']\.[^"']*["']/g) || []).length;
+  const parsedLocal = found.filter((s) => s.startsWith(".")).length;
+  if (parsedLocal < crudeLocal) {
+    fail(
+      `the import parser found ${parsedLocal} local import(s) in ${rel(file)} but a crude count ` +
+      `finds ${crudeLocal}. The parser has a blind spot, so no reachability claim from this run is ` +
+      `trustworthy. Fix the pattern rather than the count.`,
+    );
+  }
+
+  return { statics: found, dynamic };
 };
 
 const resolveLocal = (from, spec) => {

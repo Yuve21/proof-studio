@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Stripe from "stripe";
 import { PLANS } from "../../lib/billing/catalog.mjs";
+import { MCP_PACKAGE, mcpInstallLine } from "../../lib/site.mjs";
 
 export const metadata: Metadata = {
   title: "Your licence and how to install it",
@@ -65,9 +66,15 @@ export default async function Welcome({
     }
   }
 
-  const install = token
-    ? `claude mcp add proof --env PROOF_LICENCE=${token} -- npx -y github:Yuve21/proof-team-mcp`
-    : null;
+  /*
+   * The install line comes from lib/site.mjs and is NULL until the package is
+   * published. This page previously printed
+   * `npx -y github:Yuve21/proof-team-mcp` unconditionally, and that repository
+   * does not exist, so a customer who had just paid was handed a command that
+   * fails. Same defect as the apply form posting to example.com: it looked
+   * finished and it was not.
+   */
+  const install = token ? mcpInstallLine(token) : null;
 
   return (
     <main id="top">
@@ -96,18 +103,31 @@ export default async function Welcome({
                 </p>
               </div>
 
-              <div className="wl-box">
-                <p className="label">Claude Code</p>
-                <pre className="wl-token">{install}</pre>
-              </div>
+              {install ? (
+                <div className="wl-box">
+                  <p className="label">Claude Code</p>
+                  <pre className="wl-token">{install}</pre>
+                </div>
+              ) : (
+                <div className="wl-box">
+                  <p className="label">Installing it</p>
+                  <p className="wl-note">
+                    Your licence above is live and it is yours. The one-line installer is being
+                    published and is not ready yet, so rather than print a command that would fail,
+                    we will email you the line the day it works. Nothing else will be needed from
+                    you, and your licence does not start counting down while you wait.
+                  </p>
+                </div>
+              )}
 
+              {MCP_PACKAGE ? (
               <div className="wl-box">
                 <p className="label">Cursor, Codex, or anything else speaking MCP</p>
                 <pre className="wl-token">{`{
   "mcpServers": {
     "proof": {
       "command": "npx",
-      "args": ["-y", "github:Yuve21/proof-team-mcp"],
+      "args": ["-y", "${MCP_PACKAGE}"],
       "env": { "PROOF_LICENCE": "${token?.slice(0, 24)}..." }
     }
   }
@@ -117,6 +137,7 @@ export default async function Welcome({
                   rather than in a file you commit, so it never lands in your version history.
                 </p>
               </div>
+              ) : null}
 
               <div className="wl-box">
                 <p className="label">To check it worked</p>

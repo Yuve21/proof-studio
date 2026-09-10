@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start -p 3210",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\"",
+    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\" \"mcp/*.test.mjs\"",
     "report": "node report/run.mjs",
     "selfcheck": "node report/run.mjs .next/server/app/index.html --offline && node report/run.mjs .next/server/app/rulebook.html --offline && node report/run.mjs .next/server/app/terms.html --offline && node report/run.mjs .next/server/app/privacy.html --offline",
     "licence:boundary": "node scripts/check-licence-boundary.mjs",
@@ -15,10 +15,13 @@
     "verify": "npm run typecheck && npm run test && npm run licence:boundary && npm run mcp:shape && npm run claims:check && npm run build && npm run selfcheck"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "linkedom": "^0.18.13",
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "stripe": "^22.6.2"
+    "stripe": "^22.6.2",
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

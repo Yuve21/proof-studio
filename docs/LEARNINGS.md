@@ -299,3 +299,51 @@ first attempt, in four different ways.
   negation check must be sentence-scoped in both directions: too narrow and it misses the disclaimer,
   too wide and it excuses the claim.
 
+### P-12 · 2026-09-10 · The signing-boundary gate walked three files out of eight and reported the graph clean, because a multi-line import was invisible to it
+- **Claim:** `scripts/check-licence-boundary.mjs` finally got a real entry point to walk, and on its
+  first honest run it printed `walked 3 file(s) from 1 shipping entry point(s);
+  licence/issue.mjs is unreachable`. The real graph is EIGHT files. It had examined a fraction of it
+  and reported success.
+- **Evidence, measured:** `mcp/bin.mjs` has two local imports. The gate's pattern used `[^
+;]*?`
+  between `import` and `from`, so it could only match a SINGLE-LINE import, and this was invisible:
+  ```
+  import {
+    listAgents,
+    getBrief,
+  } from "./tools.mjs";
+  ```
+  Run directly against the gate's own regex, it reported seeing `["../licence/roster.mjs"]` and
+  nothing else. `./tools.mjs` is the file that imports the corpus, the report engine and the DOM
+  adapter, so missing that one edge hid five files. After the fix: eight files walked.
+- **Why it is the worst kind of pass:** multi-line imports are the ORDINARY style for several named
+  imports, so the blind spot sat exactly where real code lives. Anybody adding
+  `import { issue } from "../licence/issue.mjs"` as part of a multi-line clause in a shipped file
+  would have been told the signing path was unreachable. This is the gate that protects the key that
+  mints licences.
+- **The fix that matters more than the regex.** `[^;]*?` allows newlines and still cannot cross a
+  statement boundary, and it errs toward finding MORE edges, which is the safe direction for a
+  reachability check. But the regex will be wrong again some day, so the gate now carries a
+  COMPLETENESS CHECK: a second, cruder, independent count of local specifiers, every occurrence of
+  `from "."`, which cannot be fooled by statement shape because it does not parse statements. If the
+  parser finds fewer than the crude count, the gate FAILS and says the reachability claim is
+  untrustworthy rather than reporting a smaller graph. Two measures of one quantity, neither derived
+  from the other.
+- **Mutations, each run:** a multi-line import of the signing path in a shipped file (RED, the exact
+  hole), a single-line one (RED), and reverting the pattern to the single-line version (RED via the
+  completeness check, naming `mcp/bin.mjs` and the 1-versus-2 discrepancy).
+- **A false positive the completeness check produced first, worth its own line.** It fired on the
+  gate's own source, because the comment explaining the bug contains an EXAMPLE multi-line import.
+  Both measures are about code, so both now strip comments first. **A check that cannot tell an
+  example from the thing it exemplifies will always fire first on the file that documents it**, and
+  this happened three times in one session: here, on the apply form's placeholder address, and on
+  the welcome page's install line.
+- **Confidence:** high (the 3-versus-8 count, the regex output, and three mutations all measured).
+- **Status:** FIXED.
+- **Next time:** when a gate reports a denominator, ask whether that denominator is PLAUSIBLE before
+  believing the verdict attached to it. Three files from an entry point that imports two modules
+  which import five more is not plausible, and noticing that took one look at the number. The
+  general rule this house already has, stated one level up: **give every gate a second, cruder,
+  independent measure of the thing it counts.** A sophisticated parser and a dumb string count
+  disagreeing is the cheapest possible blind-spot detector.
+
