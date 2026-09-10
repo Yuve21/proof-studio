@@ -29,7 +29,13 @@ import path from "node:path";
 const SHIPPING_ENTRIES = [];
 
 /** Files allowed to import the signing path. Anything else is a failure. */
-const SIGNING_IMPORTERS_ALLOWED = ["licence/licence.test.mjs"];
+const SIGNING_IMPORTERS_ALLOWED = [
+  // Both test files need to MINT tokens in order to verify them. Neither ships:
+  // they are excluded from the MCP package by construction, and this gate will
+  // walk the shipping graph and prove it once SHIPPING_ENTRIES is filled in.
+  "licence/licence.test.mjs",
+  "licence/operational.test.mjs",
+];
 
 const SIGNING_MODULE = "licence/issue.mjs";
 

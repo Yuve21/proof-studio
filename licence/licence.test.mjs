@@ -11,7 +11,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
-import { entitlement } from "./verify.mjs";
+import { entitlement, GRACE_DAYS } from "./verify.mjs";
 import { issue } from "./issue.mjs";
 import { registrable, TIERS, loadRoster } from "./roster.mjs";
 
@@ -93,9 +93,19 @@ test("an expired licence is refused, and says expired rather than forged", () =>
   const token = good();
   // Presence first: valid now.
   assert.equal(check(token).valid, true);
-  // Same token, clock moved past the expiry. Nothing about the token changed, so
-  // this proves the expiry is checked and not merely present in the payload.
-  const r = check(token, { now: new Date(Date.now() + 31 * 864e5) });
+  /*
+   * Same token, clock moved past expiry AND past the grace window. Nothing about
+   * the token changed, so this proves the expiry is checked rather than merely
+   * present in the payload.
+   *
+   * This test previously used 31 days and went red the moment a grace period was
+   * added, which is correct behaviour from a test: the product changed and the
+   * assertion caught it. The fix is to move the clock past grace, NOT to relax
+   * what is asserted. Grace itself is covered in operational.test.mjs, in both
+   * directions.
+   */
+  const past = new Date(Date.now() + (30 + GRACE_DAYS + 1) * 864e5);
+  const r = check(token, { now: past });
   assert.equal(r.valid, false);
   assert.match(r.reason, /expired on/);
 });

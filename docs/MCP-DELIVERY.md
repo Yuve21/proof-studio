@@ -124,6 +124,50 @@ the line that prevents it.
 
 An unconfigured build, with no key in the trusted map, entitles nobody and says which line to fix.
 
+### What happens to a real customer, which is where the defects were
+
+An improvement pass ran the verifier against what people actually paste and against the lifecycle,
+rather than reading it. Three findings, all now fixed and pinned.
+
+**1. A wrapped token.** A tier-1 token is 256 to 263 characters depending on the customer id, and
+mail and chat clients wrap at 72 to 80. So the token a customer pastes very often has a newline in
+the middle of it. The old refusal read "licence payload is not valid base64url", which names the
+encoding rather than the cause, leaving the customer no way to know the fix is "paste it as one
+line". base64url has no legitimate whitespace, so all of it is now stripped and nothing is lost. The
+two other things people paste are named too: the quotes around it, and the `PROOF_LICENCE=` in front
+of it.
+
+**2. The vanishing.** Expiry had no grace, and an unentitled agent is ABSENT by construction, so
+there is no check to throw and nothing to print. What the customer experienced at midnight on the
+expiry date was **their slash commands silently disappearing**, which is the worst possible
+presentation of "your card expired". There is now a grace window (`GRACE_DAYS`, currently 7) during
+which the agents stay registered and every response carries the expiry and the renewal step, plus a
+warning during the last `WARN_DAYS` before expiry. **The length is a founder decision and 7 is a
+default, not an answer**: it trades revenue leakage against support load and wants a real billing
+cycle behind it.
+
+**3. A valid licence that entitled nothing.** `TIERS` defined only `tier-1`, so a perfectly valid
+`tier-2` licence returned `valid: true` and registered **zero agents**. A customer who paid would
+have had a working licence and an empty server, and the licence layer would have reported success.
+That is the failure class this house exists to catch, sitting in the thing that decides whether a
+customer got what they paid for.
+
+Two fixes, because the bug had two halves. All five tiers are now defined, and they are asserted to
+PARTITION the roster: 11 + 14 + 7 + 16 + 12 = 60, every seat in exactly one tier, no duplicates, no
+seat without a tier, no tier naming a seat the plan does not define. And "licensed, and entitles
+nothing" is now its own `status` rather than a variety of working, because it is always a mistake on
+OUR side, so the server surfaces it as a fault and tells the customer to contact us rather than to
+check their token.
+
+Confirmed by mutation, each red, each reverted: unbounded grace, invisible grace, `status` always ok,
+whitespace no longer stripped, and `tier-2` removed again. That last one is the check that would have
+caught the original defect.
+
+**Still open:** the token is baked into the host config as an env var, so renewal means editing
+`mcp.json` or re-running `claude mcp add`. A `PROOF_LICENCE_FILE` pointing outside any repository
+would make renewal "save the new token over the old file". Not built, because it belongs to the
+server, which is not written yet.
+
 ### The signing path cannot reach the customer
 
 `licence/issue.mjs` holds the private-key path. `npm run licence:boundary` fails the build if any

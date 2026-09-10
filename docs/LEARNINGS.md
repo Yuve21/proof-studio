@@ -105,3 +105,68 @@ first attempt, in four different ways.
   cost minutes rather than weeks: the failure was loud. The same layer silently eating an escape
   inside a REGEX would have produced a pattern matching slightly less than intended, and then
   reported a confident count over the gap, which is the shape that costs weeks.
+
+### P-05 · 2026-09-09 · A valid licence entitled nothing and reported success, because a tier existed in billing terms and not in code
+- **Claim:** `TIERS` in `licence/roster.mjs` defined only `tier-1`, so a correctly signed, unexpired
+  `tier-2` licence returned `licence.valid: true` with ZERO agents registered, and nothing in the
+  shape of that answer said anything was wrong.
+- **Evidence:** measured by execution, not read. A `tier-2` token verified as
+  `licence valid: true | agents registered: 0 | unknown: [ 'tier-2' ]`. `TIERS` held one key. A
+  caller reading `licence.valid`, which is the obvious thing to read, would have rendered a healthy
+  server with no tools on it, for a customer who had paid.
+- **Why it is the disqualifying class and not a missing constant:** the licence layer is the thing
+  that decides whether a customer got what they bought, and it answered "yes" while delivering
+  nothing. The direction matters too: the customer sees an empty server and blames their own token,
+  so the support thread starts in the wrong place.
+- **Confidence:** high (reproduced by execution before and after).
+- **Status:** FIXED, and the fix has two halves because the bug did.
+  (a) All five tiers are defined, and a test asserts they PARTITION the roster: 11 + 14 + 7 + 16 + 12
+  = 60, every seat in exactly one tier, no duplicates, no untiered seat, no tier naming a seat the
+  plan does not define. `TIERS` and the plan document are written in different files for different
+  purposes and neither derives from the other, so the comparison is real rather than a mirror.
+  (b) "Licensed, and entitles nothing" is now its own `status` value rather than a variety of
+  working, because it is ALWAYS a mistake on our side, so the server can surface it as a fault and
+  tell the customer to contact us instead of re-checking their token.
+  Mutation M12 renamed `tier-2` away again: RED on the partition test. That is the check that would
+  have caught the original defect.
+- **Next time:** when a list defines what a customer is entitled to, the question is not whether the
+  list is right today, it is what compares it to the thing that sells it. And any function that can
+  succeed while producing an empty result needs a third state: success, failure, and succeeded-but-
+  empty. Two states force the caller to read an empty collection as either an error it is not or a
+  success it is not.
+
+### P-06 · 2026-09-09 · Adding a grace period turned an existing test red, and the test was right to break
+- **Claim:** the expiry test used a clock 31 days out, which was one day past a 30-day licence. Adding
+  a 7-day grace window made that timestamp fall INSIDE grace, so the licence was still valid and the
+  test failed.
+- **Evidence:** `an expired licence is refused, and says expired rather than forged` went red with
+  `actual: true, expected: false` immediately after `GRACE_DAYS` landed.
+- **Why it is worth an entry:** this is the correct behaviour of a test and the tempting fix is the
+  wrong one. Relaxing the assertion, or deleting the test because "grace is covered elsewhere now",
+  would have removed the only check that expiry is enforced at all. The right fix is to move the
+  clock past grace and keep asserting exactly what was asserted before, then cover grace separately
+  in both directions (inside it works, past it does not).
+- **Confidence:** high (observed directly).
+- **Status:** FIXED. The test now uses `30 + GRACE_DAYS + 1` days and says in a comment why it moved,
+  so the next reader does not "simplify" it back to a literal.
+- **Next time:** when a product change turns a test red, the first question is whether the test was
+  describing something that is still true. If it was, move the fixture and keep the assertion. A
+  weakened assertion is invisible forever after, and the commit that weakened it will read as a
+  feature.
+
+### P-07 · 2026-09-09 · The signing-boundary gate caught a real change on its first day, not a mutation
+- **Claim:** `check-licence-boundary.mjs` failed the build because a newly written test file imported
+  `licence/issue.mjs` without being in the allowlist.
+- **Evidence:** `FAIL: 1 file(s) import licence/issue.mjs without being allowed to:
+  licence/operational.test.mjs`, during a routine `npm run verify`, hours after the gate was written.
+- **Why it is worth recording:** every other gate in this repository has so far only ever gone red
+  under a deliberate mutation. This one went red on ordinary work, which is the only real evidence
+  that a gate is load-bearing rather than ceremonial. The fix was to add the file WITH a written
+  reason, which is the flow the gate is designed to force, and the stale-exemption check means that
+  reason cannot outlive its truth.
+- **Confidence:** high (it happened).
+- **Status:** working as designed. Allowlist now names two test files, both with the reason recorded.
+- **Next time:** nothing to change. Recorded because a gate that has fired once on real work should be
+  trusted more than one that has only been demonstrated, and the next person deciding whether to keep
+  it should know it has already earned its place.
+

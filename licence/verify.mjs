@@ -54,6 +54,30 @@ import { verify as cryptoVerify, createPublicKey } from "node:crypto";
 const TOKEN_PREFIX = "proof1";
 
 /**
+ * Days past expiry during which a licence still works, loudly.
+ *
+ * WHY A GRACE PERIOD EXISTS AT ALL. Because of how this fails without one, which
+ * is the opposite of loudly: an unentitled agent is ABSENT by construction, so
+ * there is no per-call check to throw and nothing to print. What the customer
+ * experiences at midnight on day 31 is their slash commands silently
+ * disappearing. That is the worst possible presentation of "your card expired".
+ *
+ * So for these days past expiry the agents stay registered and every response
+ * carries the expiry and the renewal step, which puts the problem in front of the
+ * customer inside the flow they are already in.
+ *
+ * THE LENGTH IS A FOUNDER DECISION and 7 is a default, not an answer. It trades
+ * revenue leakage against support load, and it is the one number here that wants
+ * a real billing cycle behind it.
+ */
+export const GRACE_DAYS = 7;
+
+/** Days before expiry at which responses start warning. */
+export const WARN_DAYS = 7;
+
+const DAY = 86_400_000;
+
+/**
  * The issuing public keys, by key id. The matching PRIVATE keys never leave the
  * billing system and are not in this repository.
  *
@@ -101,7 +125,10 @@ const b64urlToBuffer = (s) => {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 };
 
-const invalid = (reason) => ({ valid: false, reason, agents: [], customer: null, expires: null, keyId: null });
+const invalid = (reason) => ({
+  valid: false, reason, agents: [], customer: null, expires: null, keyId: null,
+  grace: null, expiringSoon: null,
+});
 
 /**
  * Verify a licence token and return what it entitles.
@@ -125,7 +152,42 @@ export function entitlement(token, opts = {}) {
   if (typeof token !== "string" || token.length === 0) return invalid("no licence token supplied");
   if (token.length > 8192) return invalid("licence token is implausibly long");
 
-  const parts = token.trim().split(".");
+  /*
+   * WHITESPACE AND WRAPPERS, and this is the first support ticket rather than a
+   * theoretical one.
+   *
+   * A tier-1 token is 256 characters (measured). Mail clients and chat apps wrap
+   * at 72 to 80, so the token a customer pastes very often has a newline in the
+   * middle of it. base64url has no legitimate whitespace, so removing all of it
+   * loses nothing and rescues the common case.
+   *
+   * What was actually wrong before was not the strictness, it was the REASON. A
+   * wrapped token reported "payload is not valid base64url", which names the
+   * encoding rather than the cause, so the customer has no idea that the fix is
+   * "paste it as one line". A guard whose message does not identify the mistake
+   * gets a support thread instead of a self-service fix.
+   *
+   * Same treatment for the two other things people paste: the env var name in
+   * front of it, and the quotes around it.
+   */
+  let cleaned = token.trim();
+  const hadInnerWhitespace = /\s/.test(cleaned);
+  cleaned = cleaned.replace(/\s+/g, "");
+
+  if (/^["']|["']$/.test(cleaned)) {
+    return invalid(
+      "the licence token still has quotes around it. Paste the token itself, without the quote marks.",
+    );
+  }
+  const namePrefix = cleaned.match(/^([A-Za-z_][A-Za-z0-9_]*)=/);
+  if (namePrefix) {
+    return invalid(
+      `the licence token still has "${namePrefix[1]}=" in front of it. Paste only the value after ` +
+      `the equals sign.`,
+    );
+  }
+
+  const parts = cleaned.split(".");
   if (parts.length !== 4) {
     return invalid("licence token is not four dot-separated segments (prefix, key id, payload, signature)");
   }
@@ -152,7 +214,16 @@ export function entitlement(token, opts = {}) {
 
   const payloadBytes = b64urlToBuffer(payloadB64);
   const signature = b64urlToBuffer(signatureB64);
-  if (!payloadBytes || payloadBytes.length === 0) return invalid("licence payload is not valid base64url");
+  if (!payloadBytes || payloadBytes.length === 0) {
+    return invalid(
+      "licence payload is not valid base64url" +
+      (hadInnerWhitespace
+        ? ". The token you pasted contained a line break or space, which usually means an email or " +
+          "chat client wrapped it. Whitespace was removed and it still did not decode, so some of " +
+          "the token is probably missing: copy the whole thing again."
+        : ""),
+    );
+  }
   if (!signature || signature.length !== 64) {
     return invalid("licence signature is not a 64-byte Ed25519 signature");
   }
@@ -200,16 +271,36 @@ export function entitlement(token, opts = {}) {
 
   // (4) Expiry is checked as well as the signature, and after it, so a forged
   // token reports forgery rather than inviting a renewal.
-  if (expiresAt.getTime() <= now.getTime()) {
-    return invalid(`licence expired on ${expiresAt.toISOString()}`);
+  const msPastExpiry = now.getTime() - expiresAt.getTime();
+  const graceEndsAt = new Date(expiresAt.getTime() + GRACE_DAYS * DAY);
+
+  if (msPastExpiry > GRACE_DAYS * DAY) {
+    return invalid(
+      `licence expired on ${expiresAt.toISOString()} and the ${GRACE_DAYS}-day grace period ended ` +
+      `on ${graceEndsAt.toISOString()}. Renewing issues a new token.`,
+    );
   }
+
+  const inGrace = msPastExpiry > 0;
+  const daysLeft = Math.ceil(-msPastExpiry / DAY);
 
   return {
     valid: true,
-    reason: "licence verified offline against the issuer key; no network request was made",
+    reason: inGrace
+      ? `licence EXPIRED on ${expiresAt.toISOString()} and is inside its ${GRACE_DAYS}-day grace ` +
+        `period, which ends on ${graceEndsAt.toISOString()}. Renew to keep the team working.`
+      : "licence verified offline against the issuer key; no network request was made",
     agents: [...agents],
     customer,
     expires: expiresAt.toISOString(),
     keyId: kid,
+    // Both of these exist so the server can put the state in front of the
+    // customer. A licence that is about to stop working, or has already stopped
+    // and is only alive on grace, must not present identically to a healthy one.
+    // floor, not ceil: something 1.0001 days past expiry is "1 day ago", and ceil
+    // reported 2. A number shown to a customer that is consistently one too high
+    // is a small wrongness that erodes trust in the rest of the message.
+    grace: inGrace ? { daysPastExpiry: Math.floor(msPastExpiry / DAY), endsAt: graceEndsAt.toISOString() } : null,
+    expiringSoon: !inGrace && daysLeft <= WARN_DAYS ? { daysLeft } : null,
   };
 }
