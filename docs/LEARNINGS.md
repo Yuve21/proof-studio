@@ -4,8 +4,10 @@ Same contract as the sibling product: an entry carries a date, a one-sentence fa
 EVIDENCE (a locator, a measured number, or a command that ran), a confidence, a status, and what to
 do differently. No evidence means it is labelled `HYPOTHESIS`.
 
-Read this before adding a check. Both entries below are defects that the checks written in this
-repository ALREADY HAD, found by running them rather than by reading them.
+Read this before adding a check. Every entry below is a defect that a check written in THIS
+repository already had, found by running it rather than by reading it. That is not a coincidence and
+it is the reason the file exists: four checks were written here and four of them were wrong on the
+first attempt, in four different ways.
 
 ---
 
@@ -58,3 +60,48 @@ repository ALREADY HAD, found by running them rather than by reading them.
   JavaScript identifier gets rewritten somewhere, and the rewrite is invisible until an input
   contains the character that triggers it. This is the sibling product's rule about a regex being a
   hypothesis about its input, applied to an equality test.
+
+### P-03 · 2026-09-09 · The only surviving mutation of five was aimed at a catch block no test reached
+- **Claim:** the licence verifier had fifteen tests, five mutations were run against it, and the one
+  that survived was the one that made a crypto exception ENTITLE the caller instead of refusing.
+- **Evidence:** M4 replaced the catch block's `return invalid(...)` in `licence/verify.mjs` with
+  `signatureOk = true`. Landed on disk, confirmed by grep. `node --test` stayed green: **14 pass,
+  0 fail.** The other four mutations were red (M1 accept any signature: 5 failures; M2 drop the
+  expiry check: 1; M3 verify a re-serialised payload: 1; M5 register every agent regardless of
+  licence: 1).
+  The reason was not subtle, and that is the point: every malformed token in the suite was refused by
+  the STRUCTURAL checks above the try block (base64url alphabet, segment count, 64-byte signature
+  length), so nothing in fifteen tests ever caused an exception inside it. The catch that turns a
+  crypto failure into a refusal was completely uncovered.
+- **Why it matters more than an ordinary coverage gap:** the uncovered line fails OPEN. And the
+  realistic way to reach it is not an attacker, it is a corrupt or truncated issuer key in a deploy,
+  which would have turned a misconfiguration into free licences for everybody.
+- **Confidence:** high (five mutations run, each landing verified on disk, four red and one green).
+- **Status:** FIXED. A sixteenth test drives a PEM-shaped key with garbage inside through
+  `createPublicKey`, which throws, and asserts the result is a refusal naming the problem with zero
+  agents entitled. M4 re-run against the new suite: RED, and ONLY that test fails, which is the
+  evidence the test covers exactly that path and nothing else.
+- **Next time:** after writing a try/catch, ask which test reaches the catch. If the answer is none,
+  the catch is prose. The general form is cheap: for every guard, name the input that triggers it and
+  check that input is in the suite. Structural validation placed BEFORE a cryptographic check will
+  absorb every malformed input a test author naturally reaches for, which makes the crypto failure
+  path feel covered when it is untouched.
+
+### P-04 · 2026-09-09 · A backslash escape did not survive the shell layer and broke a generated test file
+- **Claim:** writing an escaped newline inside a Python heredoc to emit a JavaScript escape produced
+  a REAL newline in the output file instead, breaking a string literal across lines.
+- **Evidence:** the generated line read `const CORRUPT = "-----BEGIN PUBLIC KEY-----` followed by a
+  literal line break, confirmed with `cat -A`, and node reported
+  `SyntaxError: Invalid or unexpected token`. Three successive attempts to fix it by adjusting the
+  escaping failed. Resolved by removing escapes from the problem entirely, building the value with
+  `.join(String.fromCharCode(10))`. The same class then recurred within the hour: a backtick inside a
+  double-quoted `python3 -c` argument was eaten by bash command substitution, producing
+  `command not found` for three words of prose.
+- **Confidence:** high (reproduced three times, diagnosed with `cat -A`).
+- **Status:** FIXED both times. Generated source now avoids backslash escapes, and multi-line
+  generation uses a quoted heredoc so no shell layer interprets the content.
+- **Next time:** do not send backslash escapes or backticks through a shell into a generated source
+  file. Build the value structurally, or use a quoted heredoc so nothing expands. And note WHY this
+  cost minutes rather than weeks: the failure was loud. The same layer silently eating an escape
+  inside a REGEX would have produced a pattern matching slightly less than intended, and then
+  reported a confident count over the gap, which is the shape that costs weeks.
