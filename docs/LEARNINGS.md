@@ -775,3 +775,62 @@ first attempt, in four different ways.
 - **Next time:** **a limitation nothing tests is indistinguishable from a bug nobody found.** When a
   gate cannot cover a guarantee, test the guarantee directly and publish the limit, rather than
   stretching the gate until it swallows both.
+
+### P-29 · 2026-09-10 · A seat nearly built as the wrong kind of thing, and an internal seat counted as customer work
+- **Claim:** `release-verifier` is listed among tier 1's twelve seats, and I was about to build it as
+  a ninth corpus over a customer's HTML. It is one of the four INTERNAL seats in
+  `licence/roster.mjs`, never ships to a customer, and its brief is exact: "runs every gate and
+  reports pass, fail or skipped, with a denominator for each."
+- **What caught it:** reading the plan for the seat's description before writing the corpus, and
+  finding the plan says two different things about it in two places, forty-five lines apart. One
+  lists it among tier-1 deliverables; the other lists it among the seats that audit OUR corpus and
+  OUR gates.
+- **The arithmetic that had been wrong for days:** tier 1 has 12 seats of which 1 is internal, so 11
+  are customer-facing. Eight have rulebooks and three are blocked on capabilities the installed side
+  does not have by design. 8 + 3 = 11, so tier 1 is COMPLETE for everything that can run offline.
+  The old framing said "eight of the twelve", which overstated the remaining work by one and implied
+  a rulebook was still owed for a seat that can never have one.
+- **Why the seat is worth having as a program:** `npm run verify` was an `&&` chain, which has two
+  properties this seat removes. The first red hides every gate after it, so a broken typecheck means
+  nobody learns whether the claims guard passed. And `exit 0` from a gate that examined zero files is
+  indistinguishable from `exit 0` from a gate that examined fifty-four. Every gate here prints its
+  denominator for exactly that reason and NOTHING READ THEM until now.
+- **Status:** BUILT. `scripts/release-verify.mjs` runs all eight gates independently, reads each
+  denominator, and fails a gate that exits clean with a zero or unreadable count. `scripts/verify`
+  now delegates to it, so the chain is gone from the default path. The judgement is extracted into
+  `scripts/release-gates.mjs` and unit-tested, because all three of its interesting decisions are
+  about cases a healthy repository never produces. `check-plan-claims.mjs` now derives the
+  customer-facing count by subtracting `INTERNAL_SEATS`, and eleven mutations, including all three
+  numbers that really shipped wrong, each turn it red.
+- **Next time:** **read the seat's own brief before building the seat.** Two sentences in the roster
+  would have saved building the wrong artifact, and the contradiction between them was itself the
+  finding.
+
+### P-30 · 2026-09-10 · Eleven tests that never ran, because the glob did not include them
+- **Claim:** `npm test` reported 176 passing. Adding `"scripts/*.test.mjs"` to the glob took it to
+  187. The eleven tests for the release verifier's judgement had been written, were passing when run
+  directly, and were not being run by the suite or by any gate.
+- **Why this is the same defect as the product's subject:** a suite that runs 176 of 187 tests and
+  prints a green total is a check reporting success without doing its job. It is the reason every
+  gate here prints a denominator, and the test runner was the one gate whose denominator nobody was
+  comparing against anything.
+- **Confidence:** high (the count moved by exactly the eleven tests in the new file).
+- **Status:** FIXED, and the verifier now reads the test count as that gate's denominator, so a drop
+  is visible in the same table as everything else. It would not have caught THIS, because 176 is not
+  zero, and that limit is stated in the verifier's header: it cannot tell whether a denominator is
+  the RIGHT denominator. That comparison belongs to `vacuous-check-hunter`, which is not built.
+- **Next time:** **a new test directory needs the glob updated in the same commit.** The failure is
+  silent, it looks like a pass, and the count only looks wrong if you know what it should be.
+
+### P-31 · 2026-09-10 · The verifier read a progress indicator as a result
+- **Claim:** on its first full run the release verifier reported `build FAIL, 0 pages built` for a
+  build that had succeeded. Next prints `Generating static pages (0/9)` before it prints
+  `(9/9)`, and the denominator pattern matched the first occurrence.
+- **Why it is worth recording rather than just fixing:** this is a false positive produced by the
+  one file whose purpose is telling a real pass from a vacuous one, on its first run, and the failure
+  mode was reading a number that was true when printed and meaningless as a result.
+- **Status:** FIXED. Every progress line is read and the largest TOTAL wins, which is the number that
+  means something. The build gate now reports 9 pages built.
+- **Next time:** **a number scraped from a live tool may be a progress tick.** Take the maximum, or
+  match the completion line, but never the first match of a pattern that a progress indicator also
+  satisfies.

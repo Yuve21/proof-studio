@@ -188,18 +188,28 @@ seo-technical, seo-onpage, seo-structured-data, accessibility, performance-engin
 mobile-experience, broken-things, forms-and-capture, domain-and-certificates, claims-officer,
 release-verifier.
 
-**EIGHT OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `accessibility` with 13 rules,
-`broken-things` with 12, `seo-technical` with 11, `seo-onpage` with 10, `template-tells` with 10,
-`seo-structured-data` with 9, `claims-officer` with 8, and `forms-and-capture` with 6. The other four are registered as prompts
-and reported to the customer as **brief-only**, which the MCP server states in `list_agents`, in
-`get_brief` and in the prompt body: it can advise, and it cannot produce a citation. That is the
-honest state and it is published rather than implied, because a department that appears in a list and
-cannot do the thing the list implies is the defect this product exists to detect.
+**ELEVEN OF THOSE TWELVE SEATS ARE CUSTOMER-FACING.** The twelfth,
+`release-verifier`, is one of the four INTERNAL seats in `licence/roster.mjs` and never ships to a
+customer at all. It is not a rulebook and was nearly built as one: it is a program,
+`scripts/release-verify.mjs`, that runs every gate in this repository and reports pass, fail or
+skipped with a denominator for each. Counting it among the seats that need a corpus overstated the
+work remaining by one for several days.
 
-Three of the four are blocked rather than merely unbuilt, and the reason matters:
+**EIGHT OF THE ELEVEN CUSTOMER-FACING TIER-1 SEATS HAVE A RULEBOOK TODAY** (2026-09-10):
+`accessibility` with 13 rules, `broken-things` with 12, `seo-technical` with 11, `seo-onpage` with
+10, `template-tells` with 10, `seo-structured-data` with 9, `claims-officer` with 8, and
+`forms-and-capture` with 6. The other three are registered as prompts and reported to the customer
+as **brief-only**, which the MCP server states in `list_agents`, in `get_brief` and in the prompt
+body: it can advise, and it cannot produce a citation. That is the honest state and it is published
+rather than implied, because a department that appears in a list and cannot do the thing the list
+implies is the defect this product exists to detect.
+
+**ALL THREE of the remaining seats are blocked rather than merely unbuilt**, which means tier 1 is
+COMPLETE for everything that can run offline, and the reason each is blocked matters:
 `domain-and-certificates` needs a network request, which the installed software must never make, so
 it can only ever run on OUR side; and `performance-engineer` and `mobile-experience` need rendering
-and computed styles, which a parser does not have.
+and computed styles, which a parser does not have. None of the three is waiting on effort. Each is
+waiting on a capability the installed side does not have by design.
 
 That tier alone is a defensible product. It is "your finished site, checked against a published
 rulebook, every finding citing a line you can go and read, and it abstains when it cannot tell".

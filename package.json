@@ -6,13 +6,13 @@
     "build": "next build",
     "start": "next start -p 3210",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\" \"mcp/*.test.mjs\"",
+    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\" \"mcp/*.test.mjs\" \"scripts/*.test.mjs\"",
     "report": "node report/run.mjs",
     "selfcheck": "node report/run.mjs .next/server/app/index.html --offline && node report/run.mjs .next/server/app/rulebook.html --offline && node report/run.mjs .next/server/app/terms.html --offline && node report/run.mjs .next/server/app/privacy.html --offline",
     "licence:boundary": "node scripts/check-licence-boundary.mjs",
     "mcp:shape": "node scripts/measure-mcp-shape.mjs",
     "claims:check": "node scripts/check-claims.mjs",
-    "verify": "npm run typecheck && npm run test && npm run licence:boundary && npm run mcp:shape && npm run claims:check && npm run plan:check && npm run build && npm run selfcheck",
+    "verify": "node scripts/release-verify.mjs",
     "plan:check": "node scripts/check-plan-claims.mjs"
   },
   "dependencies": {
