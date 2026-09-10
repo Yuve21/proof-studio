@@ -186,8 +186,8 @@ seo-technical, seo-onpage, seo-structured-data, accessibility, performance-engin
 mobile-experience, broken-things, forms-and-capture, domain-and-certificates, claims-officer,
 release-verifier.
 
-**THREE OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `seo-onpage` with 10 rules,
-`accessibility` with 13, and `forms-and-capture` with 6. The other nine are registered as prompts
+**FOUR OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `seo-onpage` with 10 rules,
+`accessibility` with 13, `forms-and-capture` with 6, and `claims-officer` with 8. The other nine are registered as prompts
 and reported to the customer as **brief-only**, which the MCP server states in `list_agents`, in
 `get_brief` and in the prompt body: it can advise, and it cannot produce a citation. That is the
 honest state and it is published rather than implied, because a department that appears in a list and

@@ -37,9 +37,10 @@ import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import * as accessibility from "../corpus/accessibility.mjs";
 import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
+import * as claimsOfficer from "../corpus/claims-officer.mjs";
 
 /** Corpora available to a run. Three of tier-1's twelve today. */
-export const CORPORA = [seoOnpage, accessibility, formsAndCapture];
+export const CORPORA = [seoOnpage, accessibility, formsAndCapture, claimsOfficer];
 
 /** Below this much body text we did not read a page, we read a shell. */
 const MIN_BODY_TEXT = 200;

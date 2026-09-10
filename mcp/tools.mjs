@@ -20,6 +20,7 @@ import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import * as accessibility from "../corpus/accessibility.mjs";
 import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
+import * as claimsOfficer from "../corpus/claims-officer.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 import { TIERS } from "../licence/roster.mjs";
@@ -36,6 +37,7 @@ const CORPORA = {
   "seo-onpage": seoOnpage,
   accessibility,
   "forms-and-capture": formsAndCapture,
+  "claims-officer": claimsOfficer,
 };
 
 /**

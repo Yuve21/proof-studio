@@ -40,9 +40,35 @@ const REQUIRED_FILES = [
   "app/page.tsx",
   "app/layout.tsx",
   "app/rulebook/page.tsx",
-  "corpus/seo-onpage.mjs",
+  "app/terms/page.tsx",
+  "app/privacy/page.tsx",
   "docs/AGENT-ROSTER-PLAN.md",
+  "docs/MCP-DELIVERY.md",
 ];
+
+/*
+ * `corpus/seo-onpage.mjs` USED TO BE IN THAT LIST and it was removed, which is
+ * worth explaining rather than doing quietly.
+ *
+ * It was there to prove the corpora were covered. Rulebooks are now excluded by
+ * ROLE, because a file whose subject is other people's claims necessarily
+ * contains the phrases this guard bans. Requiring a file to be scanned AND
+ * excluding it by role is a contradiction, and the honest resolution is to pick
+ * one rather than to special-case it.
+ *
+ * THE GAP THAT CREATES, stated because publishing a gap is worth more than a
+ * number nobody can check: rule prose DOES reach customers, through /rulebook
+ * and through the MCP's describe_rulebook tool. So a marketing claim about Proof
+ * smuggled into a rule's rationale would be published and would not be scanned
+ * here.
+ *
+ * Why that is accepted today: every rule's prose is a third-person statement
+ * about the CUSTOMER's page ("the page has no title"), not a claim about Proof,
+ * and a first-person boast in a rule rationale would be conspicuous in review.
+ * What would change this: the moment a rule's prose starts describing what Proof
+ * does rather than what a page contains, this needs a narrow first-person check
+ * over the corpora instead of an exclusion.
+ */
 
 /**
  * Every pattern carries the reason it is banned, because a guard whose message is
@@ -165,6 +191,30 @@ const NEGATION_LOOKBACK = 2;
  * @param {number} lineNo zero-based index of the matching line
  * @param {number} index where the banned match starts within that line
  */
+/**
+ * A phrase inside a CODE SPAN is being quoted, not claimed.
+ *
+ * FIFTH OCCURRENCE OF THE SAME PATTERN IN ONE SESSION, and this time it was
+ * docs/LEARNINGS.md, the file that records the pattern, tripping it by quoting
+ * the banned phrases as EVIDENCE of what the corpus detects.
+ *
+ * Backticks are the line, and the choice is deliberate rather than convenient.
+ * They are a documentation convention: no marketing page renders a backtick, so
+ * nothing a customer reads as a promise can hide behind one. A double-quoted
+ * testimonial saying "we guarantee page one" is STILL caught, which is correct,
+ * because a claim in a customer mouth on our page is still a claim we publish.
+ *
+ * Derived from the text own markup rather than from a path list, for the same
+ * reason the rulebook exclusion is derived from CORPUS_ID: an exemption keyed to
+ * a location rots, and an exemption keyed to what the text IS does not.
+ */
+const insideCodeSpan = (line, index) => {
+  const before = line.slice(0, index);
+  // An odd number of backticks before the match means a span opened and has not
+  // closed yet, so the match is inside it.
+  return (before.match(/`/g) || []).length % 2 === 1;
+};
+
 const isNegated = (lines, lineNo, index) => {
   const prior = lines.slice(Math.max(0, lineNo - NEGATION_LOOKBACK), lineNo).join(" ");
   const before = `${prior} ${lines[lineNo].slice(0, index)}`;
@@ -192,7 +242,55 @@ const walk = (dir, out = []) => {
   return out;
 };
 
-const files = SCAN_DIRS.flatMap((d) => walk(d));
+/**
+ * A file whose SUBJECT is other people's claims is not making one.
+ *
+ * THIS EXCLUSION IS DERIVED, NOT LISTED, and the difference is the whole point.
+ *
+ * The `claims-officer` corpus exists to detect unsubstantiated claims, so its
+ * rule patterns, rationales and fixtures necessarily contain the exact phrases
+ * this guard bans. On the run that added it, this guard reported 14 findings,
+ * every one of them a pattern doing its job. A guard that fails the build on the
+ * code written to enforce it is a guard somebody switches off.
+ *
+ * The tempting fix is to add `corpus` to a skip list. That is how a scope
+ * correction becomes a hole: the next directory gets added for a worse reason and
+ * nobody remembers which exemptions were principled.
+ *
+ * So the test is what the file IS. A corpus declares `CORPUS_ID`, which is its
+ * own statement that it is a rulebook about somebody else's page. A test file
+ * declares itself by name. Both are self-describing, so the exclusion cannot rot
+ * into naming a file that has changed purpose, and neither can be claimed by a
+ * marketing page.
+ *
+ * THE CEILING BELOW IS NOT DECORATION. An exclusion that can grow without limit
+ * is an exclusion that will, so the count is checked against the number of files
+ * that could legitimately qualify. A jump means somebody has started declaring
+ * CORPUS_ID to get past this guard, and that is worth failing over.
+ */
+const isAboutClaimsRatherThanMakingThem = (file, source) =>
+  /^\s*export const CORPUS_ID\s*=/m.test(source) || /\.test\.mjs$/.test(file);
+
+const allFiles = SCAN_DIRS.flatMap((d) => walk(d));
+const excluded = [];
+const files = allFiles.filter((f) => {
+  if (isAboutClaimsRatherThanMakingThem(f, readFileSync(f, "utf8"))) {
+    excluded.push(f);
+    return false;
+  }
+  return true;
+});
+
+const MAX_EXCLUDED = 12;
+if (excluded.length > MAX_EXCLUDED) {
+  console.error(
+    `FAIL: ${excluded.length} files were excluded as rulebooks or fixtures, over the ceiling of ` +
+    `${MAX_EXCLUDED}: ${excluded.join(", ")}.\n` +
+    `      Either the corpus genuinely grew and this ceiling should be raised deliberately, or ` +
+    `something has started declaring CORPUS_ID to get past this guard. Both need a human.`,
+  );
+  process.exit(1);
+}
 
 // --- denominator, asserted two ways -----------------------------------------
 if (files.length === 0) {
@@ -225,14 +323,18 @@ for (const file of files) {
       // A negated banned phrase is a disclaimer, which is the sentence we WANT
       // on a legal page. See isNegated for why this is narrow rather than clever.
       if (typeof m.index === "number" && isNegated(lines, i, m.index)) continue;
+      // A phrase inside a code span is quoted evidence, not a claim. See
+      // insideCodeSpan for why backticks specifically.
+      if (typeof m.index === "number" && insideCodeSpan(line, m.index)) continue;
       hits.push({ file, line: i + 1, id: rule.id, text: m[0].trim(), why: rule.why });
     }
   });
 }
 
 console.log(
-  `scanned ${files.length} file(s) across ${SCAN_DIRS.join(", ")} against ${BANNED.length} ` +
-  `banned pattern(s); ${REQUIRED_FILES.length} required file(s) all present`,
+  `scanned ${files.length} of ${allFiles.length} file(s) across ${SCAN_DIRS.join(", ")} against ` +
+  `${BANNED.length} banned pattern(s); ${REQUIRED_FILES.length} required file(s) all present; ` +
+  `${excluded.length} excluded as rulebooks or fixtures (ceiling ${MAX_EXCLUDED})`,
 );
 
 if (hits.length) {

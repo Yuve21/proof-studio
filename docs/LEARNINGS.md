@@ -435,3 +435,98 @@ first attempt, in four different ways.
   worker or sent to a sandbox, declare every constant it needs INSIDE it, and write the reason on
   the line. Treat a serialised function as a separate program that happens to live in this file.
 
+
+### P-16 · 2026-09-10 · The negation check I rebuilt from a written lesson reintroduced the opposite defect, silently
+- **Claim:** `claims-officer` needed the negation handling that P-11 had already established, so I
+  built it in from the start. I got the sentence scoping right and lost the POSITIONAL half, which
+  turned a false-positive guard into a false-NEGATIVE one.
+- **Evidence:** the first version tested the whole sentence for a negator. Measured on
+  `"This offer ends March 1, 2020, so do not wait"`: urgency matched, the date matched, and the rule
+  reported nothing, because `do not` appears AFTER the claim as part of an urgency phrase. The same
+  bug would have swallowed `"We guarantee page one, don't miss out"` and
+  `"Guaranteed results in ninety days, no excuses"`, all three of which are exactly the copy this
+  department exists to find.
+- **Why it is worse than the defect it replaced.** P-11's failure was a disclaimer wrongly reported:
+  loud, arguable, and corrected in one commit. This failure is a claim silently skipped, so the
+  customer receives a clean report over a page carrying the thing they were paying to have caught.
+  The direction that produces silence is always the more expensive one here, and it is the one that
+  looks like success.
+- **The part worth generalising:** I had the lesson written down, in this file, and I still lost half
+  of it. Reading a learning is not the same as re-deriving it, and a lesson expressed as prose
+  ("negation-aware") compresses away the detail that mattered ("positional"). The fix now carries the
+  measured counter-example in a comment beside the code, so the next rebuild has the failing input
+  rather than the principle.
+- **Confidence:** high (reproduced by execution, four claim sentences and three disclaimer sentences
+  measured).
+- **Status:** FIXED. `negatedBefore(sentence, index)` reads only the text preceding the match, and
+  two mutations pin it in opposite directions: whole-sentence negation turns the positional tests
+  red, and no negation at all turns the disclaimer tests red.
+- **Next time:** when reimplementing a guard from a written lesson, find the ORIGINAL failing input
+  and run it first. A learning that does not carry its counter-example can only teach the shape of
+  the bug, not the bug.
+
+### P-17 · 2026-09-10 · A guard fired on the code written to enforce it, for the fourth time in one session
+- **Claim:** the claims guard reported 14 unsubstantiated claims, every one of them a rule pattern,
+  rationale or fixture inside the `claims-officer` corpus, whose entire purpose is detecting those
+  phrases.
+- **Evidence:** `guarantee page one`, `guaranteed business result`, `94% accura` and eleven more, all
+  from `corpus/claims-officer.mjs` and its test file. The corpus cannot do its job without containing
+  the strings the guard bans.
+- **The tempting fix and why it is wrong.** Adding `corpus` to a skip list would have taken thirty
+  seconds. That is how a scope correction becomes a hole: the next directory is added for a worse
+  reason and nobody remembers which exemptions were principled. This project's own history has the
+  mirror image, L-10, where a guard's scope was too NARROW and missed the marketing site entirely.
+- **What was done instead, and the property that makes it defensible:** the exclusion is DERIVED from
+  what a file declares about itself, not from where it lives. A corpus exports `CORPUS_ID`, which is
+  its own statement that it is a rulebook about somebody else's page; a test file declares itself by
+  name. Neither can rot into naming a file that changed purpose, and neither can be claimed by a
+  marketing page. The count is reported in the denominator (23 of 32 scanned, 9 excluded) and
+  bounded by a ceiling, so an exclusion cannot grow quietly: lowering the ceiling below the real
+  count fails, naming every excluded file.
+- **A contradiction it exposed:** `corpus/seo-onpage.mjs` was in `REQUIRED_FILES` to prove the corpora
+  were covered, and is now excluded by role. Requiring a file to be scanned and excluding it are
+  incompatible, and the honest resolution is to pick one rather than special-case it. The GAP that
+  leaves is written into the file: rule prose does reach customers through /rulebook and
+  describe_rulebook, so a Proof marketing claim smuggled into a rule rationale would be published
+  unscanned. Accepted for now because every rule's prose is third-person about the customer's page,
+  and the condition that would change it is named.
+- **Confidence:** high (14 findings before, 0 after, and the real-claim mutation still red).
+- **Status:** FIXED.
+- **Next time:** four occurrences in one session is a pattern, not bad luck: **a check that forbids a
+  string will always fire first on the file that documents or detects it.** The others were the apply
+  form's placeholder address, the welcome page's install line, and the boundary gate's own example
+  import. When it happens, exclude by what the file IS rather than where it lives, put the count in
+  the denominator, and give the exclusion a ceiling.
+
+### P-18 · 2026-09-10 · My own test harness lied to me three times in one session, each time looking like a result
+- **Claim:** three separate times today a harness I wrote reported a clean or negative result that was
+  an artefact of the harness rather than a fact about the code. Each output was indistinguishable
+  from a real measurement.
+- **The three, with what each actually was:**
+  1. **A fixture edit that never landed.** `verify_fix` reported "0 resolved, 9 still firing", which
+     reads as a considered result. I had copied the fixture and tried to edit the copy with Python
+     using a `/c/Users/...` path, which Windows Python cannot resolve, so the copy was byte-identical
+     and the tool correctly reported that nothing had changed. Recorded as P-13.
+  2. **The same path problem again**, in a shell loop testing the claims guard. `caught=0` for a real
+     claim, which would have been a serious finding. Python could not read `/tmp/p.tsx`, so the
+     variant was never written and the guard was measuring an unmodified file.
+  3. **Reading the wrong stream.** Rewritten in node, the harness reported `caught=false` for a claim
+     that an earlier run had demonstrably caught. Findings are written to STDERR and I was reading
+     `stdout` only, so every failure looked like a pass.
+- **What makes this class expensive:** in all three the harness produced output in exactly the shape
+  a real answer takes. Nothing threw, nothing was empty, nothing looked wrong. Case 2 was on its way
+  to becoming a reported defect in a guard that was working correctly, and case 1 nearly became a
+  change to working code.
+- **Confidence:** high (all three reproduced, and the corrected harness produced the opposite answer
+  in each case).
+- **Status:** FIXED. The corrected harness asserts THREE things per case: that the edit landed, the
+  exit code, and the match, over both streams, and states the expected outcome beside the observed
+  one so a mismatch is visible without arithmetic.
+- **Next time:** three habits, in order of how much they would have saved.
+  **Assert the edit landed, in the same breath as making it.** This house already requires it for
+  mutations and it applies to every fixture.
+  **State the expected result next to the observed one.** `caught=false` alone is data;
+  `caught=false expected=true WRONG` is an answer.
+  **Capture both streams, always.** A tool that writes findings to stderr and a harness that reads
+  stdout will agree that everything is fine, forever.
+
