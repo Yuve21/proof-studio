@@ -155,5 +155,20 @@ export function loadCorpus(mod) {
     }
   }
 
-  return { id, version, rules, collect };
+  /*
+   * `requiresSubject` is optional. A corpus that names one abstains when that
+   * subject is absent rather than reporting silence as a clean result. Validated
+   * here so a typo becomes a load failure instead of a check that never abstains.
+   */
+  const requiresSubject = mod.REQUIRES_SUBJECT ?? null;
+  if (requiresSubject) {
+    if (typeof requiresSubject.key !== "string" || !requiresSubject.key) {
+      throw new CorpusContractError(`corpus "${id}" declares REQUIRES_SUBJECT with no key`);
+    }
+    if (typeof requiresSubject.label !== "string" || !requiresSubject.label) {
+      throw new CorpusContractError(`corpus "${id}" declares REQUIRES_SUBJECT with no label`);
+    }
+  }
+
+  return { id, version, rules, collect, requiresSubject };
 }

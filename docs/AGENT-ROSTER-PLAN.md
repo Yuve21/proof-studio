@@ -181,10 +181,22 @@ Named so nobody re-proposes them without an argument:
 
 ## Shipping order, because 60 empty seats is worse than 11 full ones
 
-**Tier 1, ships with the first paying site (12 seats).** Every one deterministic, every one backed
-by a corpus that exists or is a week of work: template-tells, seo-technical, seo-onpage,
-seo-structured-data, accessibility, performance-engineer, mobile-experience, broken-things,
-forms-and-capture, domain-and-certificates, claims-officer, release-verifier.
+**Tier 1, ships with the first paying site (12 seats).** Every one deterministic: template-tells,
+seo-technical, seo-onpage, seo-structured-data, accessibility, performance-engineer,
+mobile-experience, broken-things, forms-and-capture, domain-and-certificates, claims-officer,
+release-verifier.
+
+**THREE OF THE TWELVE HAVE A RULEBOOK TODAY** (2026-09-10): `seo-onpage` with 10 rules,
+`accessibility` with 13, and `forms-and-capture` with 6. The other nine are registered as prompts
+and reported to the customer as **brief-only**, which the MCP server states in `list_agents`, in
+`get_brief` and in the prompt body: it can advise, and it cannot produce a citation. That is the
+honest state and it is published rather than implied, because a department that appears in a list and
+cannot do the thing the list implies is the defect this product exists to detect.
+
+Two of the nine are blocked rather than merely unbuilt, and the reason matters:
+`domain-and-certificates` needs a network request, which the installed software must never make, so
+it can only ever run on OUR side; and `performance-engineer` and `mobile-experience` need rendering
+and computed styles, which a parser does not have.
 
 That tier alone is a defensible product. It is "your finished site, checked against a published
 rulebook, every finding citing a line you can go and read, and it abstains when it cannot tell".

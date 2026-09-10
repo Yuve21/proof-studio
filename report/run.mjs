@@ -35,9 +35,11 @@ import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
+import * as accessibility from "../corpus/accessibility.mjs";
+import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
 
-/** Corpora available to a run. One today; the tier-1 list is the destination. */
-export const CORPORA = [seoOnpage];
+/** Corpora available to a run. Three of tier-1's twelve today. */
+export const CORPORA = [seoOnpage, accessibility, formsAndCapture];
 
 /** Below this much body text we did not read a page, we read a shell. */
 const MIN_BODY_TEXT = 200;
@@ -101,6 +103,23 @@ export function assess(corpus, facts) {
         `minimum. That is a shell rather than a page: it may not have finished rendering, or it may ` +
         `require an interaction this probe did not perform. No finding below is reliable and none is ` +
         `published.`,
+    };
+  } else if (corpus.requiresSubject && (facts.counts[corpus.requiresSubject.key] ?? 0) === 0) {
+    /*
+     * NOTHING TO ASSESS, which is not the same as nothing wrong.
+     *
+     * A forms rulebook over a page with no form reported "nothing fired" and a
+     * customer reads that as "your forms are fine". There were no forms. Silence
+     * over an absent subject is not a clean result and must not be presented as
+     * one.
+     */
+    status = "not_assessed";
+    abstention = {
+      code: "nothing_to_assess",
+      reason:
+        `this page has no ${corpus.requiresSubject.label}, so there was nothing for this rulebook to ` +
+        `check. That is not a clean result, it is an empty one, and the difference matters: nothing ` +
+        `here says anything about your ${corpus.requiresSubject.label}s elsewhere on the site.`,
     };
   } else if (coverage < 1) {
     status = "inconclusive";
@@ -183,10 +202,25 @@ export function formatReceipt(result) {
 
   for (const r of result.reports) {
     lines.push(`${r.corpus}  (rulebook ${r.corpusVersion})`);
+    /*
+     * THE DENOMINATORS ARE PRINTED GENERICALLY, and the first version was not.
+     *
+     * It hard-coded headings, images and links, which only the seo-onpage corpus
+     * reports. The moment a second corpus ran, the receipt read
+     * "read undefined headings, undefined images, undefined links" to a
+     * customer. A receipt whose whole promise is that you can check its
+     * arithmetic cannot print "undefined" where a count belongs.
+     *
+     * Each corpus decides what it counted, so the receipt reports whatever it
+     * was given, in the corpus's own terms.
+     */
+    const denominators = Object.entries(r.counts)
+      .filter(([key]) => key !== "bodyTextLength")
+      .map(([key, value]) => `${value} ${key}`)
+      .join(", ");
     lines.push(
       `  status ${r.status}   coverage ${r.rulesEvaluated.length}/${r.rulesEvaluated.length + r.errors.length} rules   ` +
-      `read ${r.counts.headings} headings, ${r.counts.images} images, ${r.counts.links} links, ` +
-      `${r.counts.bodyTextLength} characters of text`,
+      `read ${denominators}, ${r.counts.bodyTextLength} characters of text`,
     );
     if (r.abstention) {
       lines.push("");
@@ -235,8 +269,22 @@ if (process.argv[1] && process.argv[1].endsWith("run.mjs")) {
   runReport(target, opts)
     .then((result) => {
       console.log(process.argv.includes("--json") ? JSON.stringify(result, null, 2) : formatReceipt(result));
-      const withheld = result.reports.some((r) => r.status !== "assessed");
-      process.exit(withheld ? 3 : 0);
+      /*
+       * EXIT 3 MEANS SOMETHING WENT WRONG, NOT MERELY THAT SOMETHING WAS
+       * WITHHELD, and conflating those broke the self-check the moment a second
+       * corpus ran.
+       *
+       * `nothing_to_assess` is the CORRECT outcome for a forms rulebook on a page
+       * with no form: honest, expected, and not a failure. `page_not_readable`
+       * and `rules_failed` are failures. Treating all three as one exit code made
+       * `npm run verify` fail because the terms page has no form, which would
+       * have taught somebody to stop trusting the exit code.
+       */
+      const BENIGN_ABSTENTIONS = new Set(["nothing_to_assess"]);
+      const problems = result.reports.filter(
+        (r) => r.status !== "assessed" && !BENIGN_ABSTENTIONS.has(r.abstention?.code),
+      );
+      process.exit(problems.length > 0 ? 3 : 0);
     })
     .catch((err) => {
       console.error(`FAIL: ${err.message}`);

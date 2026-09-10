@@ -18,15 +18,34 @@
  */
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
+import * as accessibility from "../corpus/accessibility.mjs";
+import * as formsAndCapture from "../corpus/forms-and-capture.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 import { TIERS } from "../licence/roster.mjs";
 
-/** Corpora this server can run. One today; the tier-1 list is the destination. */
-const CORPORA = { "seo-onpage": seoOnpage };
+/**
+ * Corpora this server can run. Three of tier-1's twelve today.
+ *
+ * The map is agent id to corpus module, and both sides are named so a mismatch
+ * is visible rather than implied. A department NOT in here is registered as a
+ * prompt and reported as brief-only, which is the honest state: it can advise
+ * and it cannot produce a citation.
+ */
+const CORPORA = {
+  "seo-onpage": seoOnpage,
+  accessibility,
+  "forms-and-capture": formsAndCapture,
+};
 
-/** Which agents are backed by a corpus that actually exists right now. */
-export const AGENTS_WITH_CORPUS = { "seo-onpage": "seo-onpage" };
+/**
+ * Which agents are backed by a corpus that exists right now.
+ *
+ * Derived from CORPORA rather than written out, because two hand-maintained
+ * lists of the same fact is the defect this house names most often, and there
+ * would be nothing comparing them.
+ */
+export const AGENTS_WITH_CORPUS = Object.fromEntries(Object.keys(CORPORA).map((id) => [id, id]));
 
 /**
  * One line per agent. Text rather than JSON objects on purpose: the sibling

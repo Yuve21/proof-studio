@@ -379,3 +379,59 @@ first attempt, in four different ways.
   produces output indistinguishable from a real pass. The cheap habit is to assert the edit landed,
   in the same breath as making it, which is the same rule this house already has for mutations.
 
+### P-14 · 2026-09-10 · A rulebook over a page with no forms reported a clean result, and the exit code could not tell absence from failure
+- **Claim:** two defects, found by reading our own receipt rather than by a test, and the second one
+  is the interesting one.
+- **Defect one, silence sold as a clean result.** The `forms-and-capture` rulebook run against the
+  terms page printed `read 0 forms, 0 fields` and then
+  `Nothing fired. Every one of the 6 rules ran and none matched.` A customer reads that as "your
+  forms are fine". There were no forms. This house's own invariant is that a probe reporting ZERO
+  things examined is a failure regardless of exit code, and my own code had broken it on the first
+  page where a second corpus ran.
+  Fixed with an optional `REQUIRES_SUBJECT` a corpus declares: `forms-and-capture` names `forms`, so
+  an absent subject abstains with its own code, `nothing_to_assess`, and a message that says in as
+  many words that this is an empty result rather than a clean one. `accessibility` deliberately
+  declares NOTHING, because every page has elements, and applying the mechanism where it makes no
+  sense would produce a rulebook that abstains on a real page.
+- **Defect two, and it would have taught somebody to distrust the gate.** The CLI exited 3 for ANY
+  abstention, so the moment the honest abstention above started firing, `npm run selfcheck` failed
+  because the terms page has no form. That is a gate going red on the correct behaviour of the thing
+  it checks. `page_not_readable` is a problem; `nothing_to_assess` is the right answer. Exit 3 now
+  means a problem, and the benign code is named in a set rather than special-cased inline.
+- **Evidence:** measured before and after. Terms page exit 3 then 0; a genuinely thin page still exit
+  3; `npm run selfcheck` 3 then 0. A mutation that reports an absent subject as clean turns the new
+  test red.
+- **Confidence:** high (both defects reproduced, both fixes measured, mutation run).
+- **Status:** FIXED.
+- **Next time:** two rules, and the second is the one I would not have predicted.
+  First, **a check whose subject can be absent needs three outcomes, not two**: found problems,
+  found none, and there was nothing of this kind here. Two outcomes force the third to masquerade as
+  one of the others, and it always picks the flattering one.
+  Second, **when a gate's exit code covers several conditions, ask whether every one of them is
+  actually a failure.** Adding an honest abstention broke a passing gate, and the tempting fix at
+  that moment is to remove the abstention. The correct fix is to make the exit code as precise as the
+  thing it reports, because a gate that fails on correct behaviour gets ignored within a week.
+
+### P-15 · 2026-09-10 · A function serialised into another execution context takes nothing with it, three times in one session
+- **Claim:** `collect` is serialised and run inside a page, by a browser's `evaluate` or by the MCP
+  server's `new Function`. It therefore cannot see anything in its module's scope, and I forgot that
+  three separate times in one session.
+- **Evidence:** `ReferenceError: IGNORED_TAGS is not defined` from inside a page in the DOM parity
+  script; the same shape again in that file's signature function; and
+  `ReferenceError: NATIVELY_FOCUSABLE is not defined` on the first real run of the accessibility
+  corpus, where the constant sat at module level three lines above the function that used it.
+- **What makes it easy to repeat:** the code READS correctly. A constant defined above the function
+  that uses it is the ordinary arrangement, the linter is happy, and the type checker is happy. It
+  fails only at the moment the function crosses a boundary, and it fails at run time inside a context
+  whose stack trace does not obviously belong to your file.
+- **The distinction worth keeping, because it is not "never use module scope":** the RULES in the same
+  corpus files DO use module scope, and correctly, because their `detect` functions run in node
+  against plain facts. Only `collect` crosses over. So the rule is per-function, not per-file, and
+  the boundary is now stated in a comment inside `collect` itself rather than at the top of the file
+  where it would be read once and forgotten.
+- **Confidence:** high (three occurrences, each an error message).
+- **Status:** FIXED in all three.
+- **Next time:** when writing a function that will be `evaluate`d, `new Function`ed, posted to a
+  worker or sent to a sandbox, declare every constant it needs INSIDE it, and write the reason on
+  the line. Treat a serialised function as a separate program that happens to live in this file.
+
