@@ -24,6 +24,7 @@ import * as claimsOfficer from "../corpus/claims-officer.mjs";
 import * as seoStructuredData from "../corpus/seo-structured-data.mjs";
 import * as seoTechnical from "../corpus/seo-technical.mjs";
 import * as brokenThings from "../corpus/broken-things.mjs";
+import * as templateTells from "../corpus/template-tells.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 import { TIERS } from "../licence/roster.mjs";
@@ -44,6 +45,7 @@ const CORPORA = {
   "seo-structured-data": seoStructuredData,
   "seo-technical": seoTechnical,
   "broken-things": brokenThings,
+  "template-tells": templateTells,
 };
 
 /**

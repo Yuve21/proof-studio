@@ -673,3 +673,105 @@ first attempt, in four different ways.
   nothing to do with the thing being measured, and a harness that cannot tell the difference will
   credit the wrong cause. This is the fourth distinct way a harness has produced a confident wrong
   answer here, after an edit that never landed, the wrong stream, and the wrong line.
+
+### P-24 · 2026-09-10 · A published rule count that was four times the truth
+- **Claim:** the roster described `template-tells` as "the slop-scorer corpus itself, 104 rules". Both
+  halves are wrong, and both were found by counting rather than by reading.
+- **What counting showed:** the sibling product's web corpus has 51 rules, not 104. Of those, 30
+  cannot run in the software a customer installs: 12 need computed styles, 9 need a motion probe over
+  a running page, 6 need computed styles plus provenance metadata, 3 need optical character
+  recognition over screenshots. The installed side has a parser, and that is not a gap to close
+  later, it is the same constraint that makes the no-egress promise possible.
+- **Why it mattered more than an ordinary stale number:** it was a claim about DELIVERABLE SCOPE on
+  the seat whose customer-facing name is Proof Check. A customer reading 104 and receiving 10 has
+  been told something untrue about what they bought.
+- **A second thing is deliberately NOT ported, for a design reason rather than a technical one.**
+  slop-scorer produces a SCORE, so it can carry weak signals: uniform feature cards, an arrow in a
+  call to action, a stagger ladder of reveals. None means anything alone and all of them together
+  mean a great deal, which is what a score is for. Proof produces findings that each cite a line
+  somebody can read, and "three of your cards have the same shape" is true of most well-built pages
+  and is not something anybody should change. Weak-signal rules are absent on purpose and the
+  absence is published in the corpus header, so nobody adds them later thinking it was an oversight.
+- **Confidence:** high. Rule counts and probe dependencies were counted per file from the sibling
+  repository, not recalled.
+- **Status:** FIXED. Ten rules that stand alone, the plan entry rewritten with the count and the
+  reasoning, and `plan:check` compares the number against the code in both directions.
+- **Next time:** **a number describing ANOTHER repository is not checkable by our gates.** `plan:check`
+  can compare the plan against `CORPORA` because both are here. A claim about a sibling product's
+  corpus has nothing local to compare against, so it has to be counted at the moment it is written
+  and dated, or not written.
+
+### P-25 · 2026-09-10 · Thirteen failures, one cause: the fixture builder was never called
+- **Claim:** a new test file failed 13 of 14 tests, every one with `not_assessed`.
+- **The cause:** the file defined a `page(body, head)` helper that wraps a fragment into a whole
+  document, and then passed body fragments straight to the raw-HTML runner instead. Every fixture
+  was a bare fragment, every one fell under the readability floor, and the corpus correctly abstained
+  on all of them.
+- **Why it read as worse than it was:** thirteen simultaneous failures across unrelated rules looks
+  like the corpus is broken. It was one line in the harness, and the corpus was right every time.
+  The abstention was the rulebook doing its job.
+- **Status:** FIXED by splitting the two helpers and naming them for what they take: `run(body, head)`
+  builds a page, `runHtml(html)` takes a whole document, and only the dogfood test uses the second.
+- **Next time:** **when many unrelated tests fail identically, suspect the harness first.** The
+  signature is the giveaway: unrelated rules cannot all fail the same way for a reason inside the
+  rules. It is the cheapest thing to check and it was the answer.
+
+### P-26 · 2026-09-10 · A guard that was not dead, but harmful, found the same way
+- **Claim:** `tells.social-link-has-no-account` skipped any URL containing `?`, on the reasoning that
+  a share or intent link carries a query string. A mutation deleting the line survived.
+- **What the survival meant, which is a third possibility beyond P-22's two.** P-22's surviving
+  mutation meant dead code. This one was not dead: it was doing nothing it CLAIMED, because a share
+  link is already excluded by having a path (`twitter.com/intent/tweet` is not a bare host), and it
+  was actively wrong, because it also exempted `instagram.com/?utm_source=footer`, which is still a
+  link to the front page of Instagram and still the template's placeholder.
+- **Status:** FIXED. The query is stripped rather than treated as a signal, so a share link is
+  excluded by its path and a front page with tracking parameters is reported. Two fixture URLs added,
+  and the mutation re-aimed at the stripping.
+- **Confidence:** high (the false negative reproduced before the fix and is now a passing assertion).
+- **Next time:** **a surviving mutation has three possible answers, not two:** the test is missing,
+  the code is dead, or the code is wrong in a way the test never probed. Check which before writing
+  anything, because the fixes differ and two of the three are not "add a test".
+
+### P-27 · 2026-09-10 · My own conformance fix introduced the divergence it was meant to remove
+- **Claim:** `insertImpliedTbody`, added in P-20 to make linkedom agree with a browser, moved the
+  rows into the generated `tbody` and left every text node behind. That made the rows ADJACENT, so
+  `textContent` ran two table cells together as `ItemPriceNothing`, and the word count came out one
+  lower than the browser's.
+- **How it surfaced:** the parity gate, on the FIRST run after `template-tells` was wired in. That
+  rulebook is the first to count words, because it reports em dashes per thousand. Nothing before it
+  had a reason to look, so a divergence introduced by a fix sat green until a new rulebook needed
+  the number.
+- **What a browser actually does, measured rather than assumed:** given rows separated by
+  newline-and-indent, `table -> [ text, tbody[ tr, text, tr, text ] ]`. Only the whitespace BEFORE
+  the first row stays a child of the table; everything from the first row onwards moves in.
+- **Why the consequence is worth naming:** it was TEXTUAL, not structural. Every structural
+  assertion about the tbody passed. What noticed was a denominator, and a rate per thousand words
+  that depends on which parser ran is exactly the class of thing this file exists to eliminate.
+- **Confidence:** high. The browser layout was dumped and compared node by node, and five mutations
+  of the corrected code, including one reinstating the original bug exactly, each turn a named gate
+  red.
+- **Status:** FIXED, and the structure is now pinned directly rather than only implied by a count.
+- **Next time:** three habits.
+  **A fix to a parity layer needs its own parity assertion, not just a green suite.** The suite was
+  green because nothing yet read the field the fix broke.
+  **When reparenting nodes, iterate childNodes, not children.** `children` cannot see text, and
+  text is what carries word boundaries.
+  **Dump both structures before theorising.** I had two wrong explanations for the missing word
+  before printing the actual node lists, and the print took one command.
+
+### P-28 · 2026-09-10 · The third answer to a surviving mutation, and a limit worth publishing
+- **Claim:** a mutation making every text node count as whitespace survived the parity suite. Unlike
+  P-22 the code was not dead, and unlike P-26 it was not wrong. The fixture simply never contained
+  stray non-whitespace text inside a table.
+- **Why it could not just be added to the parity fixture:** a browser FOSTER PARENTS such text out
+  of the table entirely, putting it before the table element. `mcp/parser-conformance.mjs` does not
+  implement that, and implementing it means implementing a good part of the parsing algorithm. Adding
+  the markup to the parity fixture would therefore have made parity fail for a divergence deliberately
+  not addressed, and the tempting response to that is to widen a tolerance.
+- **Status:** FIXED the honest way. The behaviour actually chosen (stray text ends a row run, so the
+  rows land in separate tbodies) is asserted in a direct test, and the remaining divergence is
+  published in the file header AND asserted, so the day somebody implements foster parenting that
+  test fails and points at the paragraph explaining why it had not been.
+- **Next time:** **a limitation nothing tests is indistinguishable from a bug nobody found.** When a
+  gate cannot cover a guarantee, test the guarantee directly and publish the limit, rather than
+  stretching the gate until it swallows both.

@@ -66,6 +66,17 @@
  * not a conformance layer. `mcp/parity.test.mjs` is the only thing that knows
  * whether the two agree, and any future divergence it finds belongs in this file
  * with the same treatment rather than in a widened tolerance.
+ *
+ * ONE KNOWN REMAINING DIVERGENCE, named because it was found and deliberately
+ * not fixed. A browser FOSTER PARENTS stray non-whitespace text out of a table:
+ * `<table>oops<tr>...` puts "oops" BEFORE the table element entirely. This file
+ * does not implement that. `insertImpliedTbody` treats such text as the end of a
+ * row run, which keeps the rows grouped correctly but leaves the text inside the
+ * table where a browser would have moved it out. The consequence is confined to
+ * markup that is already malformed, and implementing foster parenting means
+ * implementing a good deal of the parsing algorithm. The behaviour that IS
+ * chosen is asserted directly in `mcp/parity.test.mjs`, because a limitation
+ * nothing tests is indistinguishable from a bug nobody found.
  */
 
 /** Elements whose subtree is foreign content, where attribute case is meaningful. */
@@ -147,27 +158,70 @@ export function insertImpliedTbody(document) {
   let wrapped = 0;
   let groups = 0;
 
+  const isRow = (n) => n.nodeType === 1 && (n.tagName || "").toUpperCase() === "TR";
+  const isWhitespaceText = (n) => n.nodeType === 3 && !/\S/.test(n.textContent || "");
+
   for (const table of document.querySelectorAll("table")) {
-    // A snapshot: this loop reparents nodes, and iterating a live list while
-    // moving its members is how a wrapper silently skips every other row.
-    const children = [...table.children];
+    /*
+     * A snapshot over childNodes, not children, and this distinction is the
+     * whole correction below. Iterating a live list while reparenting its
+     * members is also how a wrapper silently skips every other row.
+     */
+    const nodes = [...table.childNodes];
     let run = [];
+    let rowsInRun = 0;
+
     const flush = () => {
-      if (run.length === 0) return;
+      if (rowsInRun === 0) {
+        run = [];
+        return;
+      }
       const tbody = document.createElement("tbody");
       table.insertBefore(tbody, run[0]);
-      for (const tr of run) tbody.appendChild(tr);
-      wrapped += run.length;
+      for (const node of run) tbody.appendChild(node);
+      wrapped += rowsInRun;
       groups += 1;
       run = [];
+      rowsInRun = 0;
     };
-    for (const child of children) {
-      if ((child.tagName || "").toUpperCase() === "TR") run.push(child);
-      else flush();
+
+    for (const node of nodes) {
+      if (isRow(node)) {
+        run.push(node);
+        rowsInRun += 1;
+      } else if (rowsInRun > 0 && isWhitespaceText(node)) {
+        /*
+         * WHITESPACE BETWEEN AND AFTER THE ROWS MOVES INTO THE TBODY, and it is
+         * here because the first version left it behind and that broke parity.
+         *
+         * Measured against a real browser on the same markup. Given rows
+         * separated by newline-and-indent, a browser produces:
+         *
+         *   table -> [ text("\n  "), tbody[ tr, text("\n  "), tr, text("\n") ] ]
+         *
+         * Only the whitespace BEFORE the first row stays outside. The first
+         * version of this function moved the rows and left every text node in
+         * the table, producing tbody[tr, tr] with the rows now adjacent. The
+         * consequence was not structural, it was TEXTUAL: with no separator
+         * between them, `textContent` ran two cells together as
+         * "ItemPriceNothing" and the word count came out one lower than the
+         * browser's. A rulebook measuring a rate per thousand words was reading
+         * a denominator that depended on which parser ran, which is exactly the
+         * class of divergence this file exists to remove.
+         *
+         * Whitespace before the first row is deliberately NOT taken, because the
+         * browser does not take it either.
+         */
+        run.push(node);
+      } else {
+        flush();
+      }
     }
     flush();
   }
 
+  // `wrapped` counts ROWS, not moved nodes, so a caller comparing it against a
+  // count of `tr` elements is comparing like with like.
   return { wrapped, groups };
 }
 

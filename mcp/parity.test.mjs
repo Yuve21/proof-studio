@@ -26,7 +26,7 @@ import { chromium } from "playwright";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import { CORPORA } from "../report/run.mjs";
-import { conformToHtmlParsing, isForeignRoot } from "./parser-conformance.mjs";
+import { conformToHtmlParsing, isForeignRoot, insertImpliedTbody } from "./parser-conformance.mjs";
 import { assess } from "../report/run.mjs";
 import { factsFromFile, TargetError } from "./dom.mjs";
 
@@ -318,6 +318,29 @@ test("the normaliser actually renames something, so parity below cannot pass by 
   assert.deepEqual(result.attributes.names, ["autoComplete", "charSet", "colSpan", "hrefLang", "tabIndex"]);
   assert.ok(document.querySelector("meta[charset]"), "charset must match after normalisation");
   assert.ok(result.tbody.groups >= 1, "a tbody must have been generated");
+
+  /*
+   * THE WHITESPACE GOES INSIDE THE TBODY, pinned here because parity caught it
+   * only indirectly, through a word count that came out one lower than the
+   * browser's.
+   *
+   * Measured against a real browser: only the whitespace BEFORE the first row
+   * stays a child of the table; everything from the first row onwards, rows and
+   * the whitespace between and after them, goes into the generated tbody. The
+   * first version moved the rows and left every text node behind, which made the
+   * rows adjacent and ran two cells' text together as "ItemPriceNothing". The
+   * consequence was textual rather than structural, which is why the word count
+   * was the thing that noticed.
+   */
+  const tbody = document.querySelector("table > tbody");
+  assert.ok(tbody, "the tbody must be a direct child of the table");
+  const kinds = [...tbody.childNodes].map((n) => (n.nodeType === 3 ? "text" : n.tagName.toLowerCase()));
+  assert.deepEqual(kinds, ["tr", "text", "tr", "text"], "rows and their separating whitespace must both move in");
+  assert.match(
+    tbody.textContent,
+    /Price\s+Nothing/,
+    "two cells must not run together: with the whitespace left behind they read as one word",
+  );
   assert.equal(document.querySelectorAll("tbody").length, result.tbody.groups);
   // The rows moved INTO it rather than being copied, so the table still has each row once.
   assert.equal(document.querySelectorAll("table > tr").length, 0, "no tr may remain a direct child of table");
@@ -434,4 +457,51 @@ test("the foreign-element carve-out is case-insensitive, which parity CANNOT obs
   // And a missing tagName must not throw, because the walk up parentElement
   // reaches nodes this predicate was not written for.
   assert.equal(isForeignRoot({}), false);
+});
+
+test("stray non-whitespace text ends a row run, and that is a KNOWN divergence not a fix", () => {
+  /*
+   * A mutation that made every text node count as whitespace SURVIVED the parity
+   * suite, because the React fixture contains no stray text inside a table. That
+   * is the third case from LEARNINGS P-26: not a missing test for dead code, and
+   * not code that was wrong, but a real guard the fixture never probed.
+   *
+   * It is probed here rather than in the parity fixture on purpose, because a
+   * browser does something we deliberately do NOT implement: it foster parents
+   * stray text out of the table, putting it before the table element. Adding
+   * this markup to the parity fixture would therefore make parity fail for a
+   * reason this file has decided not to address, and the honest response is to
+   * assert the behaviour we chose and publish the limit, not to widen a gate.
+   */
+  const { document } = parseHTML(
+    "<table>" +
+      "<tr><td>one</td></tr>" +
+      "oops" +
+      "<tr><td>two</td></tr>" +
+      "</table>",
+  );
+  const result = insertImpliedTbody(document);
+
+  // The stray text breaks the run, so the two rows land in SEPARATE tbodies.
+  assert.equal(result.groups, 2, "non-whitespace text must end a row run");
+  assert.equal(result.wrapped, 2, "both rows are still wrapped");
+  const bodies = [...document.querySelectorAll("table > tbody")];
+  assert.equal(bodies.length, 2);
+  assert.match(bodies[0].textContent, /one/);
+  assert.match(bodies[1].textContent, /two/);
+
+  /*
+   * And the published limit: the stray text is STILL a child of the table. A
+   * browser would have moved it out. Asserted so that if anyone ever implements
+   * foster parenting, this test fails and points at the comment explaining why
+   * it was not implemented before.
+   */
+  const strayInTable = [...document.querySelector("table").childNodes].some(
+    (n) => n.nodeType === 3 && /oops/.test(n.textContent || ""),
+  );
+  assert.equal(
+    strayInTable,
+    true,
+    "foster parenting is not implemented; if it now is, update mcp/parser-conformance.mjs",
+  );
 });
