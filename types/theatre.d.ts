@@ -27,3 +27,23 @@ declare module "*/theatre.mjs" {
   ): { x: number; y: number; rotate: number };
   export const MAX_DRIFT_PERCENT: number;
 }
+
+/**
+ * The always-delivered path. Typed here for the same reason as theatre.mjs: it
+ * is plain .mjs so `node --test` can render it with no transform, and the
+ * compiler is what keeps its props honest against the .tsx that calls it.
+ */
+declare module "*/plain.mjs" {
+  export function PlainTheatre(props: {
+    beats: Array<{
+      ground: string;
+      ink: string;
+      art?: unknown;
+      copy?: unknown;
+      wipe?: boolean;
+      shatter?: string;
+    }>;
+    className?: string;
+  }): JSX.Element;
+  export default PlainTheatre;
+}

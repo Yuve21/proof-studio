@@ -19,6 +19,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { beatAt, stripeWidth, shards, toPolygon, shardDrift, rng } from "./theatre.mjs";
+import { PlainTheatre } from "./plain.mjs";
 
 export type Beat = {
   /** Ground colour for this beat. Hard-cuts at the boundary; it never tweens. */
@@ -107,19 +108,10 @@ export function ScrollTheatre({
     return Array.from({ length: shardCount }, (_, i) => ({ i, r: [r(), r(), r()] }));
   }, [seed, shardCount]);
 
-  if (!enhanced) {
-    return (
-      <div className={`theatre theatre--plain ${className}`}>
-        {beats.map((b, i) => (
-          <section key={i} className="theatre__plainBeat" style={{ background: b.ground, color: b.ink }}>
-            {b.art}
-            {b.shatter ? <p className="theatre__wordmark">{b.shatter}</p> : null}
-            {b.copy}
-          </section>
-        ))}
-      </div>
-    );
-  }
+  // The always-delivered path lives in plain.mjs so a test can import it
+  // without a JSX transform. It was a branch in here, which meant the no-JS
+  // guarantee was a comment rather than something anything could check.
+  if (!enhanced) return <PlainTheatre beats={beats} className={className} />;
 
   return (
     <section
