@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start -p 3210",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\" \"mcp/*.test.mjs\" \"scripts/*.test.mjs\"",
+    "test": "node --test \"licence/*.test.mjs\" \"corpus/*.test.mjs\" \"lib/billing/*.test.mjs\" \"lib/*.test.mjs\" \"mcp/*.test.mjs\" \"scripts/*.test.mjs\" \"components/**/*.test.mjs\"",
     "report": "node report/run.mjs",
     "selfcheck": "node report/run.mjs .next/server/app/index.html --offline && node report/run.mjs .next/server/app/rulebook.html --offline && node report/run.mjs .next/server/app/terms.html --offline && node report/run.mjs .next/server/app/privacy.html --offline",
     "licence:boundary": "node scripts/check-licence-boundary.mjs",

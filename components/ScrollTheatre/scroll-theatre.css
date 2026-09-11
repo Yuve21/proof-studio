@@ -1,0 +1,121 @@
+/*
+ * <ScrollTheatre>. Paired with ScrollTheatre.tsx and theatre.mjs.
+ *
+ * Two rules here are load-bearing rather than cosmetic and should not be
+ * "tidied":
+ *
+ *   1. `--stripe` is REGISTERED. An unregistered custom property is a string to
+ *      the engine, so it snaps between values instead of interpolating and the
+ *      wipe reads as a stutter. This is the single most likely thing for
+ *      somebody to delete while cleaning up.
+ *   2. The masked wordmark keeps its box and its text. It is transparent, not
+ *      hidden, so it is still read aloud and still selectable while the shards
+ *      carry the paint.
+ */
+
+@property --stripe {
+  syntax: "<length>";
+  initial-value: 0px;
+  inherits: false;
+}
+
+.theatre {
+  position: relative;
+  width: 100%;
+}
+
+.theatre__stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  /* The ground hard-cuts between beats. A transition here would soften every
+     boundary in the piece, which is the whole energy of it. */
+  transition: none;
+}
+
+.theatre__beat {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* A held beat is not a still image: a slow scale creep keeps it alive while
+     the reader has stopped scrolling. */
+  animation: theatre-hold 12s linear infinite alternate;
+}
+
+@keyframes theatre-hold {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); }
+}
+
+.theatre__beat[hidden] { display: none !important; }
+
+.theatre__wordmark {
+  margin: 0;
+  font-family: var(--theatre-display, Georgia, "Times New Roman", serif);
+  font-size: clamp(2.5rem, 11vw, 9rem);
+  letter-spacing: 0.06em;
+  line-height: 0.95;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.theatre__shatter {
+  position: relative;
+  display: grid;
+}
+
+.theatre__shatter > .theatre__wordmark {
+  grid-area: 1 / 1;
+}
+
+/* Transparent, NOT hidden. See the header note. */
+.theatre__wordmark--masked {
+  color: transparent;
+}
+
+.theatre__shard {
+  grid-area: 1 / 1;
+  color: currentColor;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.theatre__wipe {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: currentColor;
+  opacity: 0.9;
+  -webkit-mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 var(--stripe),
+    transparent var(--stripe) calc(var(--stripe) * 2)
+  );
+  mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 var(--stripe),
+    transparent var(--stripe) calc(var(--stripe) * 2)
+  );
+}
+
+/*
+ * The plain path. Not a shorter animation: no animation, and the full content.
+ * This is what renders on the server, on a phone, with JS off, and whenever
+ * reduced motion is requested.
+ */
+.theatre--plain .theatre__plainBeat {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: 4rem 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theatre__beat { animation: none; }
+  .theatre__shard { display: none; }
+  .theatre__wordmark--masked { color: currentColor; }
+}
