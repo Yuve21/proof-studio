@@ -36,7 +36,7 @@
 import { readFileSync } from "node:fs";
 import { CORPORA } from "../report/run.mjs";
 import { loadCorpus } from "../corpus/load.mjs";
-import { INTERNAL_SEATS } from "../licence/roster.mjs";
+import { INTERNAL_SEATS, loadRoster } from "../licence/roster.mjs";
 
 const PLAN = "docs/AGENT-ROSTER-PLAN.md";
 const TIER_1_SIZE = 12;
@@ -47,7 +47,22 @@ const NUMBER_WORDS = [
 ];
 const word = (n) => NUMBER_WORDS[n] ?? String(n);
 
-const plan = readFileSync(PLAN, "utf8");
+/*
+ * LINE ENDINGS ARE NORMALISED BEFORE ANY REGEX RUNS, and this is not a tidy-up.
+ *
+ * Every pattern below is anchored on `\n\n` or on a line boundary. On a Windows
+ * checkout git hands this file back with CRLF, every one of those patterns misses,
+ * and the script exits saying it "could not find" a section that is sitting right
+ * there. Measured on 2026-09-11: it had been failing that way on this machine at
+ * HEAD, before the day's edits, which means the gate that verifies the plan's
+ * published claims was itself dead and nobody could tell the difference between
+ * that and a plan with a missing section.
+ *
+ * The sibling product's roster checker learned the same thing and normalises on
+ * read. Same fix, same reason: a guard that cannot read its own subject on half
+ * the machines it runs on is a guard with a named blind spot.
+ */
+const plan = readFileSync(PLAN, "utf8").replace(/\r\n/g, "\n");
 const problems = [];
 
 // --- what the code actually has ---------------------------------------------
@@ -70,6 +85,9 @@ if (!tier1Match) {
   console.error(`FAIL: could not find the tier 1 seat list in ${PLAN}.`);
   process.exit(1);
 }
+// Every seat the plan defines, parsed by the same loader the licence layer uses,
+// so "is this a real seat" is answered by the roster rather than by this file.
+const seatIds = [...loadRoster(PLAN).keys()];
 const tier1Seats = tier1Match[1]
   .split(",")
   .map((s) => s.trim().replace(/\s+/g, " "))
@@ -102,10 +120,19 @@ if (!headline) {
 }
 
 const [, readyWord, totalWord, body] = headline;
-if (readyWord.toLowerCase() !== word(ready.length)) {
+
+/*
+ * THE READINESS SENTENCE IS ABOUT TIER 1, so it is compared against the tier-1
+ * rulebooks and not against every rulebook that exists. Once tier-2 seats
+ * shipped, `ready.length` stopped being the number that sentence is making a
+ * claim about, and comparing the two reported the DOCUMENT as wrong when the
+ * document was right. Scoped here rather than by loosening the assertion.
+ */
+const readyTier1 = ready.filter((r) => tier1Seats.includes(r.id));
+if (readyWord.toLowerCase() !== word(readyTier1.length)) {
   problems.push(
     `the plan says ${readyWord} of the customer-facing seats have a rulebook; the code has ` +
-    `${ready.length}, so it should say ${word(ready.length).toUpperCase()}`,
+    `${readyTier1.length}, so it should say ${word(readyTier1.length).toUpperCase()}`,
   );
 }
 if (totalWord.toLowerCase() !== word(customerFacing)) {
@@ -122,7 +149,9 @@ const claimed = [...body.matchAll(/`([a-z0-9-]+)`\s+with\s+(\d+)/g)].map((m) => 
 }));
 
 // Both directions. A missing entry and an invented entry are different defects.
-for (const r of ready) {
+// Scoped to tier 1, because the sentence being compared is a tier-1 sentence: a
+// tier-2 rulebook is not missing from it, it was never in its scope.
+for (const r of readyTier1) {
   const match = claimed.find((c) => c.id === r.id);
   if (!match) problems.push(`the code has a rulebook the plan does not list: ${r.id} (${r.rules} rules)`);
   else if (match.rules !== r.rules) {
@@ -143,7 +172,7 @@ for (const r of ready) {
 }
 
 // --- the arithmetic in the clause that went stale ---------------------------
-const remainder = customerFacing - ready.length;
+const remainder = customerFacing - readyTier1.length;
 const others = /The other ([a-z]+) are registered as prompts/.exec(body);
 if (!others) {
   problems.push('could not find the "The other N are registered as prompts" clause');
@@ -189,17 +218,32 @@ if (!blocked) {
   }
 }
 
-// --- every rulebook is a tier 1 seat ----------------------------------------
+// --- every rulebook belongs to a seat the roster defines ---------------------
+//
+// THIS USED TO ASSERT "every rulebook is a TIER 1 seat". That was true while tier
+// 1 was the only tier with corpora, and it became false on 2026-09-11 when
+// `measurement` and `conversion-auditor` shipped. The assumption was never
+// checked against the tiers, it was baked into the sentence, so the gate reported
+// two correctly built seats as defects and pointed at the document.
+//
+// The invariant that actually matters is unchanged: a rulebook must belong to a
+// seat the roster defines, or the server registers a department nobody sold. The
+// tier it sits in is reported below rather than required here.
 for (const r of ready) {
-  if (!tier1Seats.includes(r.id)) problems.push(`${r.id} has a rulebook but is not in the tier 1 list`);
+  if (!seatIds.includes(r.id)) problems.push(`${r.id} has a rulebook but is not a seat on the roster`);
 }
+const readyBeyondTier1 = ready.filter((r) => !tier1Seats.includes(r.id)).map((r) => r.id);
 
 // --- report ------------------------------------------------------------------
 console.log(
   `checked ${PLAN} against ${ready.length} corpus/corpora in report/run.mjs ` +
   `(${ready.map((r) => `${r.id}:${r.rules}`).join(", ")}); ` +
   `tier 1 has ${tier1Seats.length} seat(s), ${internalInTier1.length} internal ` +
-  `(${internalInTier1.join(", ") || "none"}), ${customerFacing} customer-facing; ` +
+  `(${internalInTier1.join(", ") || "none"}), ${customerFacing} customer-facing, ` +
+  `${readyTier1.length} of them with a rulebook; ` +
+  // Named rather than merely counted, so a tier-2 seat shipping is visible in the
+  // gate's own output instead of only in a commit message.
+  `beyond tier 1: ${readyBeyondTier1.join(", ") || "none"}; ` +
   `6 claim(s) in the plan compared in both directions`,
 );
 

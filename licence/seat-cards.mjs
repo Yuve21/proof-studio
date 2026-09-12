@@ -384,6 +384,35 @@ export const SEAT_CARDS = {
     howToRun: 'run_check with { agent: "measurement", file: "<path to a built .html file>" }',
   },
 
+  /*
+   * TIER 2, AND THE SEAT THE PLAN MARKED [A]. Conversion is mostly judgement and
+   * the rulebook does not touch that half; it owns the STRUCTURAL half, where a
+   * number nobody can tap and a button that shipped disabled are certain, cite a
+   * line, and are what a small business actually loses money to.
+   */
+  "conversion-auditor": {
+    atAGlance: "Checks that a visitor who has decided to act is able to.",
+    buildsOn: ["forms-and-capture"],
+    breaksInto: [],
+    reuses: "forms-and-capture's reading of the same forms; this seat asks about friction rather than structure",
+    ladder: {
+      humanLed: "Somebody opens the site on a desktop, where the phone number is not something you would ever try to tap.",
+      humanAssisted: "Every unreachable action cited to the element, with the judgement half left to a person.",
+      fullyAutonomous: "Runs on every build and blocks a publish on an action control that shipped disabled.",
+    },
+    theHuman: "A person owns whether the offer is worth taking and whether the copy earns the click. This seat reports only that the path exists.",
+    interrupts: {
+      budget: "One pass per page over the links, controls and forms. It does not follow a link to see where it goes.",
+      ceiling: "At most 25 findings, ranked by severity, with the suppressed count stated.",
+      handback: "Hands back on any question about whether the action is persuasive, which is the half of this department that is not decidable from bytes.",
+      expiry: "Valid for the scanned bytes. Anything script renders after build is outside it entirely.",
+    },
+    whatItReplaces: "The enquiries a business never learns it lost, because a visitor who cannot find the way to act leaves no trace at all.",
+    needs: [{ name: "built HTML on disk", required: true }],
+    buildNotes: "The phone rule is the one to watch. Its failure mode is not missing a dead number, it is flagging an order reference on every invoice page a client has, which is why the pattern demands separators or a country prefix rather than a run of digits.",
+    howToRun: 'run_check with { agent: "conversion-auditor", file: "<path to a built .html file>" }',
+  },
+
   "release-verifier": {
     atAGlance: "Runs every gate in this repository and reports pass, fail or skipped with a denominator.",
     buildsOn: [],

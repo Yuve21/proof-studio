@@ -56,6 +56,7 @@ export const LIMITS = {
   "forms-and-capture": { maxFindings: 40 },
   "claims-officer": { maxFindings: 25 },
   measurement: { maxFindings: 40 },
+  "conversion-auditor": { maxFindings: 25 },
 };
 
 /**

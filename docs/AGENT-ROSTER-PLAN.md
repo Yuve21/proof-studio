@@ -65,7 +65,7 @@ Each is marked:
 12. **performance-engineer** [D] LCP, INP, CLS, bundle weight, image and font strategy.
 13. **mobile-experience** [D] the phone version, because that is where the customer is standing.
 14. **copy-reviewer** [A] voice, clarity, reading level, jargon.
-15. **conversion-auditor** [A] the path to the one action, and the friction on it.
+15. **conversion-auditor** [D] the path to the one action, and the friction on it. **RE-MARKED [A] to [D] on 2026-09-11, and it is not a promotion.** Conversion is mostly judgement and none of that judgement is in the rulebook. What shipped is the STRUCTURAL half: a phone number that is not a tel: link, a page with no route to any action, an action control that shipped disabled, an action that exists only in the footer, a form requiring more than five fields. Six rules, all certain, all citing a line. The seat owns half a job the way broken-things does, and the judgement half stays unmeasured because attaching a measurement to it is what this house refuses.
 16. **forms-and-capture** [D] validation, error states, completion, and whether the submission actually arrives.
 17. **broken-things** [D] the things that are already broken in the bytes that shipped: a page reading `Welcome, undefined`, an unrendered `{{ business.name }}`, a logo whose src is a path on somebody's Desktop, a checkout link pointing at `localhost:3000`, a link jumping to a section that is not on the page, an empty `mailto:`. Twelve rules, all offline, all certain rather than inferred. **The half that needs a network is NOT here and cannot be:** whether a link resolves, what status code it returns, whether an image exists at its URL. That half can only ever run on our side, and the seat is honest about owning half a job rather than claiming the whole one.
 18. **domain-and-certificates** [D] domain expiry, DNS agreement with what the site expects, and certificate notAfter. Exists because the marketing page promises "we buy it, point it, secure it and renew it", a lapsed domain is the most catastrophic thing that happens to a small business site, it is a DATE somebody can read, and no other seat owns it. It is the failure the monthly fee is implicitly insuring against.
@@ -137,7 +137,9 @@ one of them exists because this house has already shipped the defect it catches.
 61. **corpus-steward** [D] owns every rule, its weight and its published false-positive note, line by line, to a customer who disagrees with it.
 62. **release-verifier** [D] runs every gate and reports pass, fail or **skipped, with a denominator for each**. Exists because a gate that scanned zero things and printed PASS is the failure this whole product is against.
 
-**Count: 9 + 10 + 7 + 14 + 5 + 7 + 5 + 5 = 62. 33 deterministic, 29 advisory.**
+**Count: 9 + 10 + 7 + 14 + 5 + 7 + 5 + 5 = 62. 34 deterministic, 28 advisory** (conversion-auditor moved on 2026-09-11).
+
+**THE COUNTS BELOW DISAGREED WITH THIS ONE BEFORE THAT MOVE, and the disagreement is older than it.** Three later sections said "31 deterministic", "29 advisory" and "29 of 60" while this line said 33/29 of 62. Nothing derived any of them from the roster, so a stale number read like an answer and stopped the lookup. They are corrected in place below rather than appended to, per the standing rule.
 (Counted mechanically off the [D] and [A] markers above, not asserted. A count that only agrees
 with the sentence that states it is not a count.)
 
@@ -309,11 +311,11 @@ adversarially and its report is part of the record.
 
 Mechanisms 1 to 5 make an agent *disciplined*. None of them prove it got *better*.
 
-For the 31 deterministic seats there is a real answer, and it is the sibling product's backtest: a
+For the 34 deterministic seats there is a real answer, and it is the sibling product's backtest: a
 labelled corpus, run on every change, that fails when legitimate work moves up a band or a known
 positive falls one.
 
-For the 29 advisory seats there is no answer yet, and this needs saying plainly rather than being
+For the 28 advisory seats there is no answer yet, and this needs saying plainly rather than being
 absorbed into a roadmap: **without a graded task set per seat, "we optimised the agents" is
 unmeasured.** Building those sets is a real project, roughly a week per department done properly,
 and it is the difference between a claim and an adjective.
@@ -330,7 +332,7 @@ Two warnings inherited from the sibling product, both learned expensively:
 
 ## Open questions for the founder
 
-1. **Whose knowledge?** Domain corpora for 31 deterministic seats is the single largest cost in this
+1. **Whose knowledge?** Domain corpora for 34 deterministic seats is the single largest cost in this
    plan. Written by hand it is months. The vendored-vocabulary route (schema.org, WCAG, DMARC, Core
    Web Vitals) covers maybe a third of it cheaply and honestly.
 2. **Per-client learnings live where?** They are the client's business knowledge. Their machine, our
@@ -338,6 +340,6 @@ Two warnings inherited from the sibling product, both learned expensively:
 3. **What does a client see?** Sixty seats is a frightening menu for a food stand. The likely answer
    is that the customer sees outcomes, and the roster is our implementation detail surfaced only to
    the organisations buying the monthly licence.
-4. **Advisory seats and the claims surface.** 29 of 60 are model judgement. The sales page must not
+4. **Advisory seats and the claims surface.** 28 of 62 are model judgement. The sales page must not
    describe those the way it describes the deterministic ones, and `claims-officer` should be pointed
    at our own marketing before any client's.

@@ -42,8 +42,19 @@ import * as seoStructuredData from "../corpus/seo-structured-data.mjs";
 import * as seoTechnical from "../corpus/seo-technical.mjs";
 import * as brokenThings from "../corpus/broken-things.mjs";
 import * as templateTells from "../corpus/template-tells.mjs";
+import * as measurement from "../corpus/measurement.mjs";
+import * as conversionAuditor from "../corpus/conversion-auditor.mjs";
 
-/** Corpora available to a run. Three of tier-1's twelve today. */
+/**
+ * Corpora available to a run. Ten, of which two are tier 2.
+ *
+ * THIS LIST AND THE ONE IN mcp/tools.mjs ARE TWO HAND-MAINTAINED COPIES of the
+ * same fact, and adding `measurement` to one without the other is how a seat
+ * becomes runnable over MCP and invisible in the customer's report. That is the
+ * exact shape this house names most often, and it is left as two lists for now
+ * only because merging them crosses the report/server boundary. Anyone adding a
+ * corpus adds it in BOTH places.
+ */
 export const CORPORA = [
   seoOnpage,
   accessibility,
@@ -53,6 +64,8 @@ export const CORPORA = [
   seoTechnical,
   brokenThings,
   templateTells,
+  measurement,
+  conversionAuditor,
 ];
 
 /** Below this much body text we did not read a page, we read a shell. */
