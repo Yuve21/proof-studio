@@ -13,7 +13,8 @@
     "mcp:shape": "node scripts/measure-mcp-shape.mjs",
     "claims:check": "node scripts/check-claims.mjs",
     "verify": "node scripts/release-verify.mjs",
-    "plan:check": "node scripts/check-plan-claims.mjs"
+    "plan:check": "node scripts/check-plan-claims.mjs",
+    "eval": "node scripts/eval.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

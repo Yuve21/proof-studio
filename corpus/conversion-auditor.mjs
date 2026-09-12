@@ -44,7 +44,7 @@ export const REQUIRES_SUBJECT = { key: "interactive", label: "link, button or fo
 
 /** Words that mark a link or button as the thing the page wants you to do. */
 const ACTION_WORDS =
-  /\b(contact|call|book|order|buy|get (a )?quote|quote|enquire|inquire|apply|sign ?up|start|request|schedule|reserve|hire|shop|checkout|donate|subscribe|join|get started|talk to)\b/i;
+  /\b(contact|call|book|order|buy|get (a )?quote|quote|enquire|enquiry|inquire|inquiry|apply|sign ?up|start|request|schedule|reserve|hire|shop|checkout|donate|subscribe|join|get started|talk to)\b/i;
 
 /**
  * A phone number as a person writes one, not as a spec defines one.
@@ -102,6 +102,14 @@ export const collect = () => {
   const buttons = Array.from(document.querySelectorAll("button, input[type=submit], [role=button]")).map((b) => ({
     label: (text(b) || b.getAttribute("value") || b.getAttribute("aria-label") || "").slice(0, 120),
     disabled: b.hasAttribute("disabled") || b.getAttribute("aria-disabled") === "true",
+    /*
+     * A submit control inside a form IS the page action, whatever its label says.
+     * Found by the eval on its first run: a disabled "Send enquiry" button fired
+     * NOTHING, because the action-word list happened not to contain "enquiry".
+     * Matching intent by vocabulary alone means the rule works until somebody
+     * words their button differently, which is not a property worth having.
+     */
+    isSubmit: b.tagName.toLowerCase() === "input" || Boolean(b.closest && b.closest("form")),
     selector: sel(b),
     inFooter: inFooter(b),
   }));
@@ -147,7 +155,7 @@ const at = (selector, observed) => ({ selector, observed });
 /** Every element that offers the visitor a way to act. */
 const actions = (f) => [
   ...f.links.filter((l) => ACTION_WORDS.test(l.label) || /^(tel:|mailto:)/i.test(l.href)),
-  ...f.buttons.filter((b) => ACTION_WORDS.test(b.label)),
+  ...f.buttons.filter((b) => b.isSubmit || ACTION_WORDS.test(b.label)),
   ...f.forms,
 ];
 
@@ -247,7 +255,7 @@ export const RULES = [
     since: "conversion-2026.09",
     detect: (f) =>
       f.buttons
-        .filter((b) => b.disabled && ACTION_WORDS.test(b.label))
+        .filter((b) => b.disabled && (b.isSubmit || ACTION_WORDS.test(b.label)))
         .map((b) => at(b.selector, `action control "${b.label || "(no label)"}" carries disabled in the shipped HTML`)),
   },
 
