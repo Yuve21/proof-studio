@@ -195,6 +195,13 @@ customer at all. It is not a rulebook and was nearly built as one: it is a progr
 skipped with a denominator for each. Counting it among the seats that need a corpus overstated the
 work remaining by one for several days.
 
+**FIRST TIER-2 SEAT SHIPPED, 2026-09-11: `measurement`, 7 rules.** It went before the six that
+sound more commercial for a reason worth recording. Every reporting seat in this plan produces a
+number, `seo-reporting` exists "to stop the department grading its own homework", and nothing had
+checked that the homework was being recorded. This seat owns the denominator itself. It is also
+fully offline-decidable, which most of the Money department is not: a checkout audit needs a live
+checkout, and the installed side makes no requests.
+
 **EIGHT OF THE ELEVEN CUSTOMER-FACING TIER-1 SEATS HAVE A RULEBOOK TODAY** (2026-09-10):
 `accessibility` with 13 rules, `broken-things` with 12, `seo-technical` with 11, `seo-onpage` with
 10, `template-tells` with 10, `seo-structured-data` with 9, `claims-officer` with 8, and

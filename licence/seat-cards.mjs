@@ -349,6 +349,39 @@ export const SEAT_CARDS = {
     howToRun: "Runs on our side. Not registered on an installed server.",
   },
 
+  /*
+   * TIER 2, AND THE FIRST CARD OUTSIDE TIER 1. The rule in this file's header is
+   * that a card for a seat that cannot run yet is a promise. `measurement` can
+   * run: its rulebook exists and is loaded by the MCP server. The gate for a card
+   * was never the tier, it was the corpus, so this one earns its place the same
+   * way the twelve above did.
+   */
+  measurement: {
+    atAGlance: "Checks whether the numbers a report would cite are being recorded at all.",
+    buildsOn: [],
+    breaksInto: [],
+    reuses: "the same parsed DOM as every other offline seat in the run; it adds no pass of its own",
+    ladder: {
+      humanLed: "Nobody checks, and six months into a retainer the first report is built on numbers that were never collected.",
+      humanAssisted: "Every wiring defect cited to the tag or the meta that causes it, with the reason a report would be empty.",
+      fullyAutonomous: "Runs on every build and blocks a publish on a tag installed with a placeholder id.",
+    },
+    theHuman: "A person owns what the site is allowed to collect. This seat reports that collection is wired, never that it is permitted.",
+    interrupts: {
+      budget: "One pass per page over the scripts, the meta tags and the policy text. It does not crawl to find the policy.",
+      ceiling: "Every wiring defect is returned, because the rulebook is seven rules and each is certain; it states the pages it did not see.",
+      handback: "Hands back the moment a question needs a network request, which is every question about whether a tag actually fires.",
+      expiry: "Valid for the scanned bytes. A tag injected by a platform after build voids the finding entirely.",
+    },
+    whatItReplaces: "The analytics audit nobody buys, and the six months of a retainer spent reporting numbers that were never being collected.",
+    needs: [
+      { name: "built HTML on disk", required: true },
+      { name: "the privacy policy page, to compare both directions", required: false, degradesTo: "the policy comparison is skipped and the report says the policy was not seen" },
+    ],
+    buildNotes: "Every rule here fires on an ABSENCE, and an absence-detector that is slightly wrong flags every correctly built site at once. The clean-page test is the one that decides whether this ships, not the catching tests.",
+    howToRun: 'run_check with { agent: "measurement", file: "<path to a built .html file>" }',
+  },
+
   "release-verifier": {
     atAGlance: "Runs every gate in this repository and reports pass, fail or skipped with a denominator.",
     buildsOn: [],
