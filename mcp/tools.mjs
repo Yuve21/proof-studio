@@ -17,6 +17,7 @@
  * says so.
  */
 import { SEAT_CARDS } from "../licence/seat-cards.mjs";
+import { applyPolicy } from "../licence/policy.mjs";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import * as accessibility from "../corpus/accessibility.mjs";
@@ -176,7 +177,13 @@ export function runCheck(agents, { agent: agentId, file }) {
     throw err;
   }
 
-  const report = assess(corpus, facts);
+  /*
+   * THE SEAT CARD IS APPLIED HERE, not left to the caller to respect. The ceiling
+   * truncates by severity and the payload states how many it suppressed, always,
+   * including zero. A caller can ask for a scan; it cannot ask for more findings
+   * than the seat published as its ceiling.
+   */
+  const report = applyPolicy(agentId, assess(corpus, facts));
   return {
     ...report,
     /*

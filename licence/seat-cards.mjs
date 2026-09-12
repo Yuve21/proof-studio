@@ -39,8 +39,10 @@
  *   Rule COUNTS are not here either. They are published elsewhere and go stale;
  *   `scripts/check-plan-claims.mjs` already owns that argument.
  *
- * Cards are written for TIER 1 only. A card for a seat that cannot run yet is a
- * promise, and tier 2 gets its cards when tier 2 gets its corpora.
+ * A CARD IS EARNED BY A CORPUS, NOT BY A TIER. A card for a seat that cannot run
+ * yet is a promise, so cards started as tier 1 only. `measurement` is tier 2 and
+ * has one, because its rulebook exists and the MCP server loads it. The gate was
+ * always the corpus.
  */
 
 /**
@@ -109,7 +111,7 @@ export const SEAT_CARDS = {
     theHuman: "A person waives a tell per client and owns that waiver; nothing is auto-waived.",
     interrupts: {
       budget: "One pass over the built HTML of each page. No second pass.",
-      ceiling: "Returns every tell it finds, because the rulebook is small and each is certain; it reports the page count it could not parse.",
+      ceiling: "At most 40 tells, ranked by severity, with the suppressed count stated. The rulebook is small enough that a page reaching that ceiling is a page in trouble rather than a page being triaged; it also reports the page count it could not parse.",
       handback: "Stops and hands back when the parser cannot read a chunk, rather than reporting the page clean.",
       expiry: "Findings are true for the bytes that were scanned. Any rebuild invalidates them.",
     },
@@ -132,7 +134,7 @@ export const SEAT_CARDS = {
     theHuman: "A person owns the half this seat cannot see, because that half requires a request the installed software must never make.",
     interrupts: {
       budget: "One pass per page over the offline rules only.",
-      ceiling: "Returns all certain breakages and states plainly that link resolution, status codes and image existence were NOT checked.",
+      ceiling: "At most 40 breakages, ranked by severity, with the suppressed count stated, and always the plain statement that link resolution, status codes and image existence were NOT checked.",
       handback: "Hands back the moment a rule would need a network request to decide.",
       expiry: "Valid for the scanned bytes only.",
     },
@@ -155,7 +157,7 @@ export const SEAT_CARDS = {
     theHuman: "A person walks the keyboard path once per site. No parser can tell whether the focus order makes sense to somebody using it.",
     interrupts: {
       budget: "One pass per page.",
-      ceiling: "Returns violations grouped by criterion, and names the criteria it cannot evaluate offline.",
+      ceiling: "At most 40 violations, ranked by severity, with the suppressed count stated, grouped by criterion, and naming the criteria it cannot evaluate offline.",
       handback: "Withholds rather than reports clean when coverage of the page is too low to tell.",
       expiry: "Valid for the scanned bytes.",
     },
@@ -178,7 +180,7 @@ export const SEAT_CARDS = {
     theHuman: "A person owns the decision to deindex anything. The seat never proposes removing a page from search on its own.",
     interrupts: {
       budget: "One pass over the built output. It does not crawl.",
-      ceiling: "Top findings by severity, with the suppressed count stated.",
+      ceiling: "At most 25 findings, ranked by severity, with the suppressed count stated.",
       handback: "Hands back when robots.txt and the sitemap disagree in a way that has more than one legitimate reading.",
       expiry: "Live-state claims about indexation are not made here at all, because this seat cannot see a search engine.",
     },
@@ -201,7 +203,7 @@ export const SEAT_CARDS = {
     theHuman: "A person approves every piece of copy that ships. This seat never writes to the site.",
     interrupts: {
       budget: "One pass over the page set.",
-      ceiling: "Top findings by severity with the suppressed count stated.",
+      ceiling: "At most 25 findings, ranked by severity, with the suppressed count stated, and the one it would fix first named.",
       handback: "Hands back when a heading order is unusual in a way that may be a deliberate design choice.",
       expiry: "Valid for the scanned bytes.",
     },
@@ -224,7 +226,7 @@ export const SEAT_CARDS = {
     theHuman: "A person owns any claim the markup makes about the business. Structured data is a published claim and claims-officer's rules apply to it.",
     interrupts: {
       budget: "One pass per page.",
-      ceiling: "All validity errors returned; eligibility suggestions capped at the top few per page with the rest counted.",
+      ceiling: "At most 25 findings, ranked so validity errors come above eligibility suggestions, with the suppressed count stated.",
       handback: "Hands back on a type the vendored vocabulary does not define, rather than guessing.",
       expiry: "The vocabulary is versioned; findings name the version they were made against.",
     },
@@ -247,7 +249,7 @@ export const SEAT_CARDS = {
     theHuman: "A person sends one real submission per site and confirms it arrived. Nothing installed can prove delivery.",
     interrupts: {
       budget: "One pass per page.",
-      ceiling: "All structural defects returned; states that delivery was not tested.",
+      ceiling: "At most 40 structural defects, ranked by severity, with the suppressed count stated, plus the standing note that delivery was not tested.",
       handback: "Hands back when a form posts to an endpoint it cannot see.",
       expiry: "Valid for the scanned bytes. Delivery is never claimed at all.",
     },
@@ -270,7 +272,7 @@ export const SEAT_CARDS = {
     theHuman: "The business owner owns every claim on their site. This seat never rewrites one, it names it.",
     interrupts: {
       budget: "One pass per page.",
-      ceiling: "All claims flagged; ranked by exposure, with the count of low-exposure ones stated.",
+      ceiling: "At most 25 claims, ranked by exposure, with the suppressed count stated.",
       handback: "Hands back on anything that reads as a legal question rather than a copy question.",
       expiry: "A substantiated claim expires when its substantiation does; findings name the date.",
     },
@@ -369,7 +371,7 @@ export const SEAT_CARDS = {
     theHuman: "A person owns what the site is allowed to collect. This seat reports that collection is wired, never that it is permitted.",
     interrupts: {
       budget: "One pass per page over the scripts, the meta tags and the policy text. It does not crawl to find the policy.",
-      ceiling: "Every wiring defect is returned, because the rulebook is seven rules and each is certain; it states the pages it did not see.",
+      ceiling: "At most 40 wiring defects, ranked by severity, with the suppressed count stated. The rulebook is seven rules, so reaching that ceiling means many pages rather than a noisy page; it also states the pages it did not see.",
       handback: "Hands back the moment a question needs a network request, which is every question about whether a tag actually fires.",
       expiry: "Valid for the scanned bytes. A tag injected by a platform after build voids the finding entirely.",
     },
