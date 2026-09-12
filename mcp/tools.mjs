@@ -18,6 +18,7 @@
  */
 import { SEAT_CARDS } from "../licence/seat-cards.mjs";
 import { applyPolicy } from "../licence/policy.mjs";
+import { consider, remember } from "../licence/session.mjs";
 import { loadCorpus } from "../corpus/load.mjs";
 import * as seoOnpage from "../corpus/seo-onpage.mjs";
 import * as accessibility from "../corpus/accessibility.mjs";
@@ -168,6 +169,16 @@ export function runCheck(agents, { agent: agentId, file }) {
     };
   }
 
+  /*
+   * THE BUDGET, before any work is done. Bytes this department has already read
+   * in this session come back from memory, and a session that has read its
+   * published number of files ends rather than continuing quietly. Keyed by
+   * CONTENT HASH, so an edit-then-verify loop always re-runs and only a genuinely
+   * repeated read is served from cache.
+   */
+  const verdict = consider(agentId, file);
+  if (verdict.kind === "repeat" || verdict.kind === "over-budget") return verdict.report;
+
   const corpus = loadCorpus(CORPORA[corpusName]);
   let facts;
   try {
@@ -183,7 +194,7 @@ export function runCheck(agents, { agent: agentId, file }) {
    * including zero. A caller can ask for a scan; it cannot ask for more findings
    * than the seat published as its ceiling.
    */
-  const report = applyPolicy(agentId, assess(corpus, facts));
+  const report = remember(agentId, verdict.id, applyPolicy(agentId, assess(corpus, facts)));
   return {
     ...report,
     /*

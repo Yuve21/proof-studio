@@ -25,11 +25,11 @@
  *   the human      carried on every payload, so the caller knows which decision
  *                  is not the agent's to make.
  *
- * WHAT IS NOT ENFORCED HERE, said plainly rather than implied by silence: the
- * budget and the handback. Both are properties of a RUN rather than of a payload,
- * and this module sees one payload at a time. Wiring them means the server
- * holding per-session state, which is a real change to the MCP surface and gets
- * its own commit rather than a half version buried in this one.
+ * THE BUDGET AND THE HANDBACK LIVE IN `session.mjs`, because both are properties
+ * of a RUN and this module sees one payload at a time. They were unenforced when
+ * this file was written and are enforced now: a repeated read of identical bytes
+ * is served from memory, and a department that has read its published number of
+ * files ends the run with a coded abstention.
  */
 
 import { SEAT_CARDS } from "./seat-cards.mjs";
